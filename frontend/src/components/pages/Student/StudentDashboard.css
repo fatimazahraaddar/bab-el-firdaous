@@ -1,0 +1,468 @@
+/* ==================== PAGE STRUCTURE ==================== */
+.student-dashboard {
+  display: flex;
+  flex-direction: column;
+  gap: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ==================== PAGE HEADER ==================== */
+.page-header {
+  margin-bottom: 16px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.page-subtitle {
+  margin: 8px 0 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+/* ==================== STATS GRID ==================== */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 20px;
+}
+
+.stat-card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.stat-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-info {
+  flex: 1;
+}
+
+.stat-label {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  margin: 8px 0 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.stat-suffix {
+  font-size: 16px;
+  font-weight: 500;
+  color: #9ca3af;
+}
+
+/* ==================== CARDS ==================== */
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+  border: 1px solid #e5e7eb;
+}
+
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #f3f4f6;
+}
+
+.card-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.view-link {
+  font-size: 13px;
+  font-weight: 500;
+  color: #4f46e5;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.view-link:hover {
+  color: #7c3aed;
+}
+
+/* ==================== DASHBOARD CONTENT ==================== */
+.dashboard-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+/* SCHEDULE */
+.schedule-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.schedule-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.schedule-item:hover {
+  background-color: #f3f4f6;
+}
+
+.schedule-time {
+  flex: 0 0 auto;
+  width: 90px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #6b7280;
+}
+
+.schedule-dot {
+  position: absolute;
+  left: 100px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  border: 3px solid white;
+  box-shadow: 0 0 0 1px #e5e7eb;
+}
+
+.schedule-content {
+  flex: 1;
+  margin-left: 8px;
+}
+
+.schedule-content h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.schedule-content p {
+  margin: 6px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+/* ASSIGNMENTS */
+.assignments-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.assignment-item {
+  padding: 16px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  border-left: 4px solid #4f46e5;
+  transition: all 0.2s;
+}
+
+.assignment-item:hover {
+  background-color: #f3f4f6;
+  transform: translateX(4px);
+}
+
+.assignment-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.assignment-header h4 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.priority-badge {
+  font-size: 16px;
+}
+
+.assignment-meta {
+  margin: 0;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.assignment-footer {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.due-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #f59e0b;
+}
+
+/* ==================== BOTTOM SECTION ==================== */
+.bottom-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 24px;
+}
+
+/* GRADES */
+.grades-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.grade-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+}
+
+.grade-subject {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  min-width: 100px;
+}
+
+.grade-bar {
+  flex: 1;
+  height: 8px;
+  background-color: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.grade-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.grade-value {
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: #111827;
+  min-width: 45px;
+  text-align: right;
+}
+
+/* QUICK STATS */
+.quick-info {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+}
+
+.info-icon {
+  font-size: 24px;
+}
+
+.info-text {
+  flex: 1;
+}
+
+.info-text p {
+  margin: 0;
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.info-text span {
+  display: block;
+  margin-top: 4px;
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.text-success {
+  color: #10b981;
+}
+
+/* ANNOUNCEMENTS */
+.announcements-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.announcement-item {
+  padding: 12px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+  border-left: 4px solid #8b5cf6;
+}
+
+.announcement-badge {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 4px 12px;
+  background-color: #f3f4f6;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+}
+
+.announcement-item p {
+  margin: 0;
+  font-size: 12px;
+  color: #374151;
+  line-height: 1.5;
+}
+
+/* ==================== RESPONSIVE ==================== */
+@media (max-width: 1200px) {
+  .dashboard-content {
+    grid-template-columns: 1fr;
+  }
+
+  .bottom-section {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .student-dashboard {
+    gap: 20px;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .stat-card {
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+
+  .stat-icon {
+    width: 52px;
+    height: 52px;
+  }
+
+  .stat-value {
+    font-size: 22px;
+  }
+
+  .card {
+    padding: 16px;
+  }
+
+  .card-header {
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+  }
+
+  .dashboard-content,
+  .bottom-section {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .page-title {
+    font-size: 24px;
+  }
+}
+
+@media (max-width: 480px) {
+  .student-dashboard {
+    gap: 16px;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .schedule-item,
+  .assignment-item {
+    padding: 12px;
+  }
+
+  .grade-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .grade-subject {
+    min-width: 100%;
+  }
+
+  .grade-value {
+    align-self: flex-end;
+  }
+}
