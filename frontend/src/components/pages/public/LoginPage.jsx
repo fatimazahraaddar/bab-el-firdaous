@@ -31,10 +31,12 @@ export default function LoginPage() {
   setIsLoading(true);
 
   try {
-    const res = await fetch("http://localhost:5174/api/login", {
+    const res = await fetch("http://localhost:8000/api/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
+                "Accept": "application/json"  // ← Ajout crucial pour Laravel API
+
       },
       body: JSON.stringify({
         email,
@@ -45,9 +47,17 @@ export default function LoginPage() {
     const data = await res.json();
 
     if (!res.ok) {
-      throw new Error(data.message || "Login failed");
+      const message = data.message || "Échec de la connexion";
+      const errors = data.errors;
+      
+      if (errors) {
+        // Erreurs de validation : affiche la première
+        const firstError = Object.values(errors)[0]?.[0];
+        throw new Error(firstError || message);
+      }
+    
+      throw new Error(message);
     }
-
     // ✅ sauvegarder token + user
     localStorage.setItem("token", data.token);
     localStorage.setItem("user", JSON.stringify(data.user));
@@ -55,14 +65,22 @@ export default function LoginPage() {
     // ✅ redirection selon role
     if (data.user.role === "admin") {
       window.location.href = "/admin/dashboard";
-    } else {
+    } else if (data.user?.role === "parent") {
       window.location.href = "/parent/dashboard";
+    } else if (data.user?.role === "student") {
+      window.location.href = "/student/dashboard";
+    } else {
+      // Fallback
+      window.location.href = "/dashboard";
     }
 
   } catch (error) {
-  console.log(error);
-  console.log(error.response);
-  alert(JSON.stringify(error.response?.data));
+ // alert(JSON.stringify(error.response?.data));
+
+   console.error('Erreur complète:', error);
+  
+  // fetch ne rejette pas pour les erreurs HTTP (401, 422, 500...)
+  alert('❌ Erreur de connexion au serveur');
   } finally {
     setIsLoading(false);
   }

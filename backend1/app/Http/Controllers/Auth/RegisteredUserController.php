@@ -34,7 +34,7 @@ class RegisteredUserController extends Controller
 
         event(new Registered($user));
 
-        Auth::login($user);
+        Auth::login($user); // Session Auth
 
         return response()->json([
             'success' => true,
