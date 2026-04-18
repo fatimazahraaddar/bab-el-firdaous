@@ -22,7 +22,7 @@ class AuthController extends Controller
         if ($validator->fails()) {
             return response()->json($validator->errors(), 422);
         }
-
+        //specifier le role student par defaut 
         $role = 'student';
 
         if ($request->user() && $request->user()->role === 'admin' && $request->filled('role')) {

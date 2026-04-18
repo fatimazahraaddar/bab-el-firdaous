@@ -67,11 +67,14 @@ export default function LoginPage() {
       window.location.href = "/admin/dashboard";
     } else if (data.user?.role === "parent") {
       window.location.href = "/parent/dashboard";
-    } else if (data.user?.role === "student") {
+    }
+    else if (data.user?.role === "teacher") {
+      window.location.href = "/teacher/dashboard";
+    }  else if (data.user?.role === "student") {
       window.location.href = "/student/dashboard";
     } else {
       // Fallback
-      window.location.href = "/dashboard";
+      window.location.href = "/";
     }
 
   } catch (error) {
