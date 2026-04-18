@@ -3,6 +3,7 @@
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\API\AuthController;
+use App\Http\Controllers\API\StudentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -35,8 +36,20 @@ Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
-});
 
+    
+
+    // ✅ Liste + filtres + pagination
+    Route::get('/admin/students', [StudentController::class, 'index']);
+    
+    // ✅ Suppression
+    Route::delete('/admin/students/{id}', [StudentController::class, 'destroy']);
+    
+    // ✅ Autres routes (déjà créées)
+    Route::post('/admin/students/create', [StudentController::class, 'store']);
+    Route::get('/admin/students/{id}', [StudentController::class, 'show']);
+    Route::put('/admin/students/{id}', [StudentController::class, 'update']);
+});
 
 
 Route::get('/test-debug', function() {
