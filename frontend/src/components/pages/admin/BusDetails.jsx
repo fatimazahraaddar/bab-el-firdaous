@@ -1,55 +1,97 @@
 import DashboardLayout from '../../pages/Layouts/DashboardLayout';
 import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function BusDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const bus = {
-    id,
-    number: "Bus 1",
-    driver: "Ali",
-    capacity: 3,
-    zone: "Centre ville"
-  };
+  const [bus, setBus] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [allStudents, setAllStudents] = useState([]);
+  const [selectedStudent, setSelectedStudent] = useState("");
+  const [loading, setLoading] = useState(true);
 
-  const [students, setStudents] = useState([
-    { id: 1, name: "Ahmed Benali", class: "3ème A" },
-    { id: 2, name: "Sara Ali", class: "6ème A" }
-  ]);
+  // 🔄 FETCH DATA
+  useEffect(() => {
+    Promise.all([
+      fetch(`http://localhost:8000/api/buses/${id}`),
+      fetch(`http://localhost:8000/api/students`)
+    ])
+      .then(async ([busRes, studentsRes]) => {
+        const busData = await busRes.json();
+        const studentsData = await studentsRes.json();
 
-  const [newStudent, setNewStudent] = useState({
-    name: "",
-    class: ""
-  });
+        setBus(busData);
+        setStudents(busData.students || []);
+        setAllStudents(studentsData);
 
-  // ➕ Ajouter élève
-  const addStudent = () => {
-    if (!newStudent.name || !newStudent.class) return;
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [id]);
+
+  // ➕ Ajouter élève au bus
+  const addStudent = async () => {
+    if (!selectedStudent) return;
 
     if (students.length >= bus.capacity) {
       alert("Bus plein !");
       return;
     }
 
-    setStudents([
-      ...students,
-      {
-        id: Date.now(),
-        ...newStudent
-      }
-    ]);
+    try {
+      await fetch(`http://localhost:8000/api/students/${selectedStudent}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ bus_id: bus.id })
+      });
 
-    setNewStudent({ name: "", class: "" });
-  };
+      // refresh
+      const updated = allStudents.find(s => s.id == selectedStudent);
+      setStudents([...students, updated]);
+      setSelectedStudent("");
 
-  // ❌ Supprimer élève
-  const removeStudent = (id) => {
-    if (window.confirm("Retirer cet élève ?")) {
-      setStudents(students.filter(s => s.id !== id));
+    } catch (err) {
+      console.error(err);
     }
   };
+
+  // ❌ retirer élève du bus
+  const removeStudent = async (studentId) => {
+    if (!window.confirm("Retirer cet élève ?")) return;
+
+    try {
+      await fetch(`http://localhost:8000/api/students/${studentId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ bus_id: null })
+      });
+
+      setStudents(students.filter(s => s.id !== studentId));
+
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  // ✅ LOADING
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="loading">Chargement...</div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!bus) return <p>Bus introuvable</p>;
 
   return (
     <DashboardLayout>
@@ -76,7 +118,7 @@ export default function BusDetails() {
               <h5>Informations</h5>
 
               <p><strong>Bus :</strong> {bus.number}</p>
-              <p><strong>Chauffeur :</strong> {bus.driver}</p>
+              <p><strong>Chauffeur :</strong> {bus.driver_name}</p>
               <p><strong>Capacité :</strong> {bus.capacity}</p>
               <p><strong>Zone :</strong> {bus.zone}</p>
 
@@ -87,7 +129,6 @@ export default function BusDetails() {
                 </span>
               </p>
 
-              {/* ⚠️ Alerte */}
               {students.length >= bus.capacity && (
                 <div className="alert alert-danger mt-2">
                   ⚠️ Bus plein !
@@ -105,28 +146,21 @@ export default function BusDetails() {
 
               {/* ➕ Ajouter élève */}
               <div className="row mb-3">
-                <div className="col-md-5">
-                  <input
-                    type="text"
-                    placeholder="Nom"
-                    className="form-control"
-                    value={newStudent.name}
-                    onChange={(e) =>
-                      setNewStudent({ ...newStudent, name: e.target.value })
-                    }
-                  />
-                </div>
-
-                <div className="col-md-5">
-                  <input
-                    type="text"
-                    placeholder="Classe"
-                    className="form-control"
-                    value={newStudent.class}
-                    onChange={(e) =>
-                      setNewStudent({ ...newStudent, class: e.target.value })
-                    }
-                  />
+                <div className="col-md-10">
+                  <select
+                    className="form-select"
+                    value={selectedStudent}
+                    onChange={(e) => setSelectedStudent(e.target.value)}
+                  >
+                    <option value="">Choisir un élève</option>
+                    {allStudents
+                      .filter(s => !s.bus_id)
+                      .map(s => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                  </select>
                 </div>
 
                 <div className="col-md-2">
@@ -136,7 +170,7 @@ export default function BusDetails() {
                 </div>
               </div>
 
-              {/* Tableau */}
+              {/* TABLE */}
               <table className="table table-hover">
                 <thead>
                   <tr>
@@ -150,7 +184,7 @@ export default function BusDetails() {
                   {students.map((s) => (
                     <tr key={s.id}>
                       <td>{s.name}</td>
-                      <td>{s.class}</td>
+                      <td>{s.class?.name || "-"}</td>
 
                       <td>
                         <button

@@ -4,77 +4,122 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Assignment;
+use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
 class AssignmentController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
+        $query = Assignment::with('class')->latest('due_date');
 
-        if ($user->role === 'student') {
-            // Students see assignments for their class
-            // Assuming class is stored in user, but for now, return all
-            $assignments = Assignment::all();
-        } elseif ($user->role === 'teacher') {
-            $assignments = Assignment::where('teacher_id', $user->id)->get();
-        } else {
-            $assignments = Assignment::all();
+        if ($user->role === 'admin') {
+            if ($request->filled('student_id')) {
+                $student = Student::find($request->integer('student_id'));
+                if ($student) {
+                    $query->where('class_id', $student->class_id);
+                }
+            }
+
+            return response()->json($query->get());
         }
 
-        return response()->json($assignments);
+        if ($user->role === 'parent') {
+            $parent = $user->parentProfile;
+            if (! $parent) {
+                return response()->json([]);
+            }
+
+            $children = $parent->children()->get(['id', 'class_id']);
+            $classIds = $children->pluck('class_id')->filter()->unique()->values();
+
+            $query->whereIn('class_id', $classIds);
+
+            if ($request->filled('student_id')) {
+                $studentId = $request->integer('student_id');
+                $child = $children->firstWhere('id', $studentId);
+
+                if (! $child) {
+                    return response()->json(['message' => 'Unauthorized'], 403);
+                }
+
+                $query->where('class_id', $child->class_id);
+            }
+
+            return response()->json($query->get());
+        }
+
+        return response()->json(['message' => 'Unauthorized'], 403);
     }
 
     public function store(Request $request)
     {
-        $request->validate([
-            'title' => 'required|string',
+        if (Auth::user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
             'description' => 'nullable|string',
+            'subject' => 'required|string|max:255',
             'due_date' => 'required|date',
-            'subject' => 'required|string',
-            'class' => 'required|string',
+            'class_id' => 'required|exists:school_classes,id',
+            'status' => 'nullable|in:pending,done',
         ]);
 
-        $assignment = Assignment::create([
-            'title' => $request->title,
-            'description' => $request->description,
-            'due_date' => $request->due_date,
-            'teacher_id' => Auth::id(),
-            'subject' => $request->subject,
-            'class' => $request->class,
-        ]);
+        $assignment = Assignment::create($validated);
 
-        return response()->json($assignment, 201);
+        return response()->json($assignment->load('class'), 201);
     }
 
     public function show(Assignment $assignment)
     {
-        return response()->json($assignment);
+        $user = Auth::user();
+
+        if ($user->role === 'admin') {
+            return response()->json($assignment->load('class'));
+        }
+
+        if ($user->role === 'parent') {
+            $parent = $user->parentProfile;
+            if (! $parent) {
+                return response()->json(['message' => 'Unauthorized'], 403);
+            }
+
+            $classIds = $parent->children()->pluck('class_id');
+            if ($classIds->contains($assignment->class_id)) {
+                return response()->json($assignment->load('class'));
+            }
+        }
+
+        return response()->json(['message' => 'Unauthorized'], 403);
     }
 
     public function update(Request $request, Assignment $assignment)
     {
-        if ($assignment->teacher_id !== Auth::id() && Auth::user()->role !== 'admin') {
+        if (Auth::user()->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $request->validate([
-            'title' => 'required|string',
+        $validated = $request->validate([
+            'title' => 'sometimes|string|max:255',
             'description' => 'nullable|string',
-            'due_date' => 'required|date',
-            'subject' => 'required|string',
-            'class' => 'required|string',
+            'subject' => 'sometimes|string|max:255',
+            'due_date' => 'sometimes|date',
+            'class_id' => 'sometimes|exists:school_classes,id',
+            'status' => 'sometimes|in:pending,done',
         ]);
 
-        $assignment->update($request->all());
+        $assignment->update($validated);
 
-        return response()->json($assignment);
+        return response()->json($assignment->load('class'));
     }
 
     public function destroy(Assignment $assignment)
     {
-        if ($assignment->teacher_id !== Auth::id() && Auth::user()->role !== 'admin') {
+        if (Auth::user()->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -83,3 +128,4 @@ class AssignmentController extends Controller
         return response()->json(['message' => 'Assignment deleted']);
     }
 }
+

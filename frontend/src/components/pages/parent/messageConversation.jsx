@@ -1,46 +1,73 @@
 import DashboardLayout from "../../pages/Layouts/DashboardLayout";
 import { useState, useRef, useEffect } from "react";
+import { useParams } from "react-router-dom";
+import axios from "axios";
 
 export default function ParentMessageConversation() {
+  const { id } = useParams();
 
   const contact = {
     name: "Mr Karim",
     role: "Prof Math"
   };
 
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      sender: "other",
-      type: "text",
-      text: "Bonjour, votre enfant doit faire ses devoirs.",
-      time: "10:00"
-    }
-  ]);
-
+  const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState("");
   const fileInputRef = useRef(null);
   const bottomRef = useRef(null);
 
+  // 🔥 LOAD MESSAGES (API)
+  useEffect(() => {
+    const fetchMessages = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        const res = await axios.get(`http://localhost:8000/api/messages/${id}`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json"
+          }
+        });
+
+        setMessages(res.data);
+
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    fetchMessages();
+  }, [id]);
+
   // 📩 envoyer message
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!newMessage.trim()) return;
 
-    setMessages([
-      ...messages,
-      {
-        id: messages.length + 1,
-        sender: "me",
-        type: "text",
-        text: newMessage,
-        time: new Date().toLocaleTimeString()
-      }
-    ]);
+    const messageData = {
+      receiver_id: Number(id),
+      text: newMessage
+    };
 
-    setNewMessage("");
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.post("http://localhost:8000/api/messages", messageData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json"
+        }
+      });
+
+      setMessages((prev) => [...prev, { id: Date.now(), is_me: true, text: newMessage, full_time: new Date().toISOString() }]);
+
+      setNewMessage("");
+
+    } catch (err) {
+      console.error(err);
+    }
   };
 
-  // 📎 envoyer fichier
+  // 📎 fichier
   const handleFile = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -48,115 +75,100 @@ export default function ParentMessageConversation() {
     setMessages([
       ...messages,
       {
-        id: messages.length + 1,
+        id: Date.now(),
         sender: "me",
-        type: "file",
         file: file.name,
-        time: new Date().toLocaleTimeString()
+        type: "file",
+        created_at: new Date()
       }
     ]);
   };
 
-  // auto scroll
+  // 🔄 scroll auto
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   return (
     <DashboardLayout userRole="parent" userName="Parent User">
-      <div className="container-fluid">
 
-        <div className="card shadow d-flex flex-column" style={{ height: "80vh" }}>
+      <div className="chat-container">
 
-          {/* HEADER */}
-          <div className="p-3 border-bottom d-flex align-items-center">
-            <div className="me-2">👤</div>
+        {/* HEADER */}
+        <div className="chat-header">
+          <div className="chat-user">
+            <div className="avatar">👨‍🏫</div>
             <div>
               <strong>{contact.name}</strong>
-              <br />
-              <small className="text-muted">{contact.role}</small>
+              <p>{contact.role}</p>
             </div>
           </div>
+        </div>
 
-          {/* MESSAGES */}
-          <div className="p-3 flex-grow-1 overflow-auto">
+        {/* MESSAGES */}
+        <div className="chat-body">
 
-            {messages.map((msg) => (
-              <div
-                key={msg.id}
-                className={`d-flex mb-2 ${
-                  msg.sender === "me"
-                    ? "justify-content-end"
-                    : "justify-content-start"
-                }`}
-              >
-                <div
-                  className={`p-2 rounded ${
-                    msg.sender === "me"
-                      ? "bg-primary text-white"
-                      : "bg-light"
-                  }`}
-                  style={{ maxWidth: "60%" }}
-                >
-
-                  {/* TEXT */}
-                  {msg.type === "text" && msg.text}
-
-                  {/* FILE */}
-                  {msg.type === "file" && (
-                    <div>📎 {msg.file}</div>
-                  )}
-
-                  <div style={{ fontSize: "10px" }}>
-                    {msg.time}
-                  </div>
-
-                </div>
-              </div>
-            ))}
-
-            <div ref={bottomRef}></div>
-
-          </div>
-
-          {/* INPUT */}
-          <div className="p-3 border-top d-flex align-items-center">
-
-            {/* 📎 fichier */}
-            <button
-              className="btn btn-outline-secondary me-2"
-              onClick={() => fileInputRef.current.click()}
+          {messages.map((msg, i) => (
+            <div
+              key={i}
+              className={`chat-message ${
+                msg.is_me ? "me" : "other"
+              }`}
             >
-              📎
-            </button>
+              <div className="bubble">
 
-            <input
-              type="file"
-              ref={fileInputRef}
-              style={{ display: "none" }}
-              onChange={handleFile}
-            />
+                {msg.text && <p>{msg.text}</p>}
 
-            {/* 💬 message */}
-            <input
-              type="text"
-              className="form-control me-2"
-              placeholder="Écrire un message..."
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-            />
+                {msg.file && <p>📎 {msg.file}</p>}
 
-            {/* ➤ envoyer */}
-            <button className="btn btn-primary" onClick={sendMessage}>
-              ➤
-            </button>
+                <span className="time">
+                  {new Date(msg.full_time || msg.created_at || "").toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit"
+                  })}
+                </span>
 
-          </div>
+              </div>
+            </div>
+          ))}
+
+          <div ref={bottomRef}></div>
+
+        </div>
+
+        {/* INPUT */}
+        <div className="chat-input">
+
+          <button
+            className="file-btn"
+            onClick={() => fileInputRef.current.click()}
+          >
+            📎
+          </button>
+
+          <input
+            type="file"
+            ref={fileInputRef}
+            hidden
+            onChange={handleFile}
+          />
+
+          <input
+            type="text"
+            placeholder="Écrire un message..."
+            value={newMessage}
+            onChange={(e) => setNewMessage(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+          />
+
+          <button className="send-btn" onClick={sendMessage}>
+            ➤
+          </button>
 
         </div>
 
       </div>
+
     </DashboardLayout>
   );
 }

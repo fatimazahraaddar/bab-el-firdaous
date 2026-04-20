@@ -3,93 +3,100 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use App\Models\Guardian;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 
 class GuardianController extends Controller
 {
+    // ✅ LISTE DES PARENTS
     public function index()
     {
-        $user = Auth::user();
-
-        if ($user->role === 'admin') {
-            return response()->json(Guardian::with(['user', 'children.user'])->get());
-        }
-
-        if ($user->role === 'parent') {
-            $guardian = $user->parentProfile;
-            return response()->json($guardian ? $guardian->load(['user', 'children.user']) : []);
-        }
-
-        return response()->json(['message' => 'Unauthorized'], 403);
+        return response()->json(Guardian::all());
     }
 
+    // ✅ CRÉER UN PARENT
     public function store(Request $request)
     {
         if (Auth::user()->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $request->validate([
-            'user_id' => 'required|exists:users,id|unique:parents,user_id',
-            'phone' => 'nullable|string',
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|string|min:6',
+            'phone' => 'required|string|max:20',
+            'job' => 'nullable|string|max:255',
         ]);
 
-        $guardian = Guardian::create($request->all());
-
-        return response()->json($guardian, 201);
-    }
-
-    public function show(Guardian $parent)
-    {
-        $user = Auth::user();
-
-        if ($user->role === 'admin') {
-            return response()->json($parent->load(['user', 'children.user']));
-        }
-
-        if ($user->role === 'parent' && $user->parentProfile && $user->parentProfile->id === $parent->id) {
-            return response()->json($parent->load(['user', 'children.user']));
-        }
-
-        return response()->json(['message' => 'Unauthorized'], 403);
-    }
-
-    public function update(Request $request, Guardian $parent)
-    {
-        if (Auth::user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $request->validate([
-            'phone' => 'nullable|string',
+        // 🔐 créer user (login)
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => Hash::make($validated['password']),
+            'role' => 'parent'
         ]);
 
-        $parent->update($request->all());
+        // 👨‍👩‍👧 créer guardian
+        $guardian = Guardian::create([
+            'user_id' => $user->id,
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+            'job' => $validated['job'] ?? null
+        ]);
 
-        return response()->json($parent);
+        return response()->json([
+            'message' => 'Parent créé avec succès',
+            'guardian' => $guardian
+        ], 201);
     }
 
-    public function destroy(Guardian $parent)
+    // ✅ AFFICHER UN PARENT
+    public function show($id)
     {
-        if (Auth::user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        $guardian = Guardian::find($id);
+
+        if (!$guardian) {
+            return response()->json(['message' => 'Parent non trouvé'], 404);
         }
 
-        $parent->delete();
-
-        return response()->json(['message' => 'Parent deleted']);
+        return response()->json($guardian);
     }
 
-    public function children(Guardian $parent)
+    // ✅ METTRE À JOUR
+    public function update(Request $request, $id)
     {
-        $user = Auth::user();
+        $guardian = Guardian::find($id);
 
-        if ($user->role !== 'admin' && (! $user->parentProfile || $user->parentProfile->id !== $parent->id)) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        if (!$guardian) {
+            return response()->json(['message' => 'Parent non trouvé'], 404);
         }
 
-        return response()->json($parent->children()->with('user')->get());
+        $guardian->update($request->all());
+
+        return response()->json([
+            'message' => 'Parent mis à jour',
+            'guardian' => $guardian
+        ]);
+    }
+
+    // ✅ SUPPRIMER
+    public function destroy($id)
+    {
+        $guardian = Guardian::find($id);
+
+        if (!$guardian) {
+            return response()->json(['message' => 'Parent non trouvé'], 404);
+        }
+
+        $guardian->delete();
+
+        return response()->json([
+            'message' => 'Parent supprimé'
+        ]);
     }
 }

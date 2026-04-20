@@ -1,30 +1,19 @@
+import { useContext } from "react";
 import { Navigate } from "react-router-dom";
+import { AuthContext } from "../components/contextes/AuthProvider";
 
-export default function ProtectedRoute({ children, roleRequired }) {
-  const token = localStorage.getItem("token");
+export default function ProtectedRoute({ children, role }) {
+  const { user, loading } = useContext(AuthContext);
 
-  let user = null;
+  if (loading) return <div>Loading...</div>;
 
-  const storedUser = localStorage.getItem("user");
-
-  if (storedUser && storedUser !== "undefined") {
-    try {
-      user = JSON.parse(storedUser);
-    } catch {
-      user = null;
-    }
+  if (!user) {
+    return <Navigate to="/login" />;
   }
 
-  // ❌ pas connecté
-  if (!token || !user) {
-    return <Navigate to="/login" replace />;
+  if (role && user.role !== role) {
+    return <Navigate to="/" />;
   }
 
-  // ❌ mauvais role
-  if (roleRequired && user.role !== roleRequired) {
-    return <Navigate to="/login" replace />;
-  }
-
-  // ✅ autorisé
   return children;
 }

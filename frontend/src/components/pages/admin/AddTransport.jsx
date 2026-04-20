@@ -7,11 +7,13 @@ export default function AddTransport() {
 
   const [form, setForm] = useState({
     number: "",
-    driver: "",
+    driver_name: "",
     capacity: "",
-    students: 0,
     zone: ""
   });
+
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({
@@ -20,13 +22,29 @@ export default function AddTransport() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setError("");
+    setLoading(true);
 
-    console.log("New Bus:", form);
+    try {
+      const res = await fetch("http://localhost:8000/api/buses", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(form)
+      });
 
-    // 🔗 API Laravel plus tard
-    navigate('/admin/transport');
+      if (!res.ok) throw new Error("Erreur lors de l'ajout");
+
+      navigate('/admin/transport');
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -37,94 +55,45 @@ export default function AddTransport() {
 
         <div className="card shadow p-4">
 
+          {error && <div className="alert alert-danger">{error}</div>}
+
           <form onSubmit={handleSubmit}>
 
-            {/* 🚌 Numéro */}
-            <div className="mb-3">
-              <label>Numéro du bus</label>
-              <input
-                type="text"
-                name="number"
-                className="form-control"
-                placeholder="Ex: Bus 3"
-                value={form.number}
-                onChange={handleChange}
-                required
-              />
-            </div>
+            <input
+              name="number"
+              className="form-control mb-3"
+              placeholder="Numéro bus"
+              onChange={handleChange}
+              required
+            />
 
-            {/* 👨‍✈️ Chauffeur */}
-            <div className="mb-3">
-              <label>Chauffeur</label>
-              <input
-                type="text"
-                name="driver"
-                className="form-control"
-                placeholder="Nom du chauffeur"
-                value={form.driver}
-                onChange={handleChange}
-                required
-              />
-            </div>
+            <input
+              name="driver_name"
+              className="form-control mb-3"
+              placeholder="Chauffeur"
+              onChange={handleChange}
+              required
+            />
 
-            {/* 🚐 Capacité */}
-            <div className="mb-3">
-              <label>Capacité</label>
-              <input
-                type="number"
-                name="capacity"
-                className="form-control"
-                placeholder="Ex: 30"
-                value={form.capacity}
-                onChange={handleChange}
-                required
-              />
-            </div>
+            <input
+              type="number"
+              name="capacity"
+              className="form-control mb-3"
+              placeholder="Capacité"
+              onChange={handleChange}
+              required
+            />
 
-            {/* 👨‍🎓 Nombre élèves */}
-            <div className="mb-3">
-              <label>Nombre d’élèves</label>
-              <input
-                type="number"
-                name="students"
-                className="form-control"
-                value={form.students}
-                onChange={handleChange}
-              />
-            </div>
+            <input
+              name="zone"
+              className="form-control mb-3"
+              placeholder="Zone"
+              onChange={handleChange}
+            />
 
-            {/* 📍 Zone */}
-            <div className="mb-3">
-              <label>Zone / Trajet</label>
-              <input
-                type="text"
-                name="zone"
-                className="form-control"
-                placeholder="Ex: Centre ville"
-                value={form.zone}
-                onChange={handleChange}
-              />
-            </div>
-
-            {/* ⚠️ Vérification */}
-            {form.students > form.capacity && (
-              <div className="alert alert-danger">
-                ⚠️ Nombre d’élèves dépasse la capacité !
-              </div>
-            )}
-
-            {/* Boutons */}
             <div className="text-end">
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="btn btn-secondary me-2"
-              >
-                Annuler
-              </button>
-
-              <button className="btn btn-primary">
-                Ajouter
+              <button className="btn btn-primary" disabled={loading}>
+                {loading ? "Ajout..." : "Ajouter"}
               </button>
             </div>
 

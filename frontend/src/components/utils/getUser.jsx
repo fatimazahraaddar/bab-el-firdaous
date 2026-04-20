@@ -1,17 +1,21 @@
-import axios from 'axios';
-
-export const api = axios.create({
-  baseURL: 'http://localhost:8000',
-  withCredentials: true,});
+import axios from "axios";
 
 export const getUser = async () => {
   const token = localStorage.getItem("token");
 
-  const res = await api.get('/api/user', {
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  if (!token) return null;
 
-  return res.data;
+  try {
+    const res = await axios.get("http://localhost:8000/api/user", {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json"
+      }
+    });
+
+    return res.data;
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    return null;
+  }
 };

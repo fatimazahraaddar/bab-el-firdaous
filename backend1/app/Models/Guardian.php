@@ -12,17 +12,28 @@ class Guardian extends Model
     protected $table = 'parents';
 
     protected $fillable = [
-        'user_id',
+        'name',
         'phone',
+        'email',
+        'job',
+        'user_id' // 🔥 IMPORTANT
     ];
 
+    // 🔥 relation user (compte)
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
+    // 🔥 relation enfants
     public function children()
     {
-        return $this->hasMany(Student::class, 'parent_id');
+        return $this->hasMany(Student::class, 'guardian_id'); // ✅ CORRIGÉ
+    }
+
+    // 🔥 nombre d'enfants (dashboard)
+    public function getChildrenCountAttribute()
+    {
+        return $this->children()->count();
     }
 }

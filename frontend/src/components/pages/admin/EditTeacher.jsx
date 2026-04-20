@@ -1,21 +1,48 @@
 import DashboardLayout from '../../pages/Layouts/DashboardLayout';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 export default function EditTeacher() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  // 🔥 Données simulées
   const [form, setForm] = useState({
-    name: "Mr Ahmed",
-    email: "ahmed@school.com",
-    phone: "0600000000",
-    subject: "Math",
-    classes: ["3ème A", "6ème A"]
+    name: "",
+    email: "",
+    phone: "",
+    subject: "",
+    classes: []
   });
 
-  const classOptions = ["6ème A", "3ème A", "1ère Bac"];
+  const [allClasses, setAllClasses] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 🔄 FETCH DATA
+  useEffect(() => {
+    Promise.all([
+      fetch(`http://localhost:8000/api/teachers/${id}`),
+      fetch(`http://localhost:8000/api/classes`)
+    ])
+      .then(async ([t, c]) => {
+        const teacher = await t.json();
+        const classesData = await c.json();
+
+        setForm({
+          name: teacher.name || "",
+          email: teacher.email || "",
+          phone: teacher.phone || "",
+          subject: teacher.subject || "",
+          classes: teacher.classes?.map(c => c.id) || []
+        });
+
+        setAllClasses(classesData);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [id]);
 
   const handleChange = (e) => {
     setForm({
@@ -24,28 +51,51 @@ export default function EditTeacher() {
     });
   };
 
-  // 🎓 gérer classes multiples
-  const handleClassChange = (className) => {
-    if (form.classes.includes(className)) {
+  // 🎓 gérer classes (IDs)
+  const handleClassChange = (classId) => {
+    if (form.classes.includes(classId)) {
       setForm({
         ...form,
-        classes: form.classes.filter(c => c !== className)
+        classes: form.classes.filter(id => id !== classId)
       });
     } else {
       setForm({
         ...form,
-        classes: [...form.classes, className]
+        classes: [...form.classes, classId]
       });
     }
   };
 
-  const handleSubmit = (e) => {
+  // 🔥 UPDATE API
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("Update teacher:", id, form);
 
-    // 🔗 API Laravel plus tard
-    navigate('/admin/teachers');
+    try {
+      const res = await fetch(`http://localhost:8000/api/teachers/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(form)
+      });
+
+      if (!res.ok) throw new Error();
+
+      navigate('/admin/teachers');
+
+    } catch (err) {
+      console.error(err);
+    }
   };
+
+  // ✅ LOADING
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="loading">Chargement...</div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout userRole="admin" userName="Admin User">
@@ -57,9 +107,7 @@ export default function EditTeacher() {
 
           <form onSubmit={handleSubmit}>
 
-            {/* 👤 Infos */}
-            <h5 className="mb-3">Informations</h5>
-
+            {/* Infos */}
             <input
               type="text"
               name="name"
@@ -84,42 +132,33 @@ export default function EditTeacher() {
               onChange={handleChange}
             />
 
-            {/* 📚 Matière */}
-            <div className="mb-3">
-              <label>Matière</label>
-              <select
-                name="subject"
-                className="form-select"
-                value={form.subject}
-                onChange={handleChange}
-              >
-                <option value="Math">Mathématiques</option>
-                <option value="Français">Français</option>
-                <option value="Informatique">Informatique</option>
-              </select>
-            </div>
+            {/* Matière */}
+            <select
+              name="subject"
+              className="form-select mb-3"
+              value={form.subject}
+              onChange={handleChange}
+            >
+              <option value="Math">Mathématiques</option>
+              <option value="Français">Français</option>
+              <option value="Informatique">Informatique</option>
+            </select>
 
-            {/* 🎓 Classes */}
+            {/* Classes dynamiques */}
             <div className="mb-3">
               <label>Classes</label>
 
-              {classOptions.map((c) => (
-                <div key={c} className="form-check">
+              {allClasses.map((c) => (
+                <div key={c.id} className="form-check">
                   <input
                     type="checkbox"
                     className="form-check-input"
-                    checked={form.classes.includes(c)}
-                    onChange={() => handleClassChange(c)}
+                    checked={form.classes.includes(c.id)}
+                    onChange={() => handleClassChange(c.id)}
                   />
-                  <label className="form-check-label">{c}</label>
+                  <label className="form-check-label">{c.name}</label>
                 </div>
               ))}
-            </div>
-
-            {/* 📸 Photo */}
-            <div className="mb-3">
-              <label>Photo</label>
-              <input type="file" className="form-control" />
             </div>
 
             {/* Boutons */}

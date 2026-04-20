@@ -1,11 +1,26 @@
 import { NavLink, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useState, useContext } from "react";
+import { AuthContext } from "../../contextes/AuthProvider";
 import './DashboardLayout.css';
 import logoEcole from '../../../assets/logoEcole.jpg';
+import { useNavigate } from "react-router-dom";
 
-export default function DashboardLayout({ children, userRole, userName }) {
+export default function DashboardLayout({ children }) {
+
+  const { user } = useContext(AuthContext);
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const { logout } = useContext(AuthContext);
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+  await logout(); // 🔥 supprime token + appel API
+  navigate("/login"); // 🔥 redirection
+};
+
+  // 🔥 récupérer role dynamiquement
+  const userRole = user?.role || "admin";
+  const userName = user?.name || "User";
 
   const navItems = {
     student: [
@@ -33,7 +48,6 @@ export default function DashboardLayout({ children, userRole, userName }) {
     admin: [
       { href: "/admin/dashboard", label: "Dashboard", icon: "📊" },
       { href: "/admin/students", label: "Élèves", icon: "👨‍🎓" },
-      { href: "/admin/teachers", label: "Enseignants", icon: "👩‍🏫" },
       { href: "/admin/schedule", label: "Emploi du temps", icon: "📅" },
       { href: "/admin/announcements", label: "Annonces", icon: "📢" },
       { href: "/admin/messages", label: "Messages", icon: "💬" },
@@ -45,12 +59,9 @@ export default function DashboardLayout({ children, userRole, userName }) {
     parent: [
       { href: "/parent/dashboard", label: "Dashboard", icon: "📊" },
       { href: "/parent/children", label: "Mes enfants", icon: "👨‍👧" },
-      { href: "/parent/notes", label: "Notes", icon: "📊" },
       { href: "/parent/absences", label: "Absences", icon: "⚠️" },
       { href: "/parent/assignments", label: "Devoirs", icon: "📝" },
-      { href: "/parent/timetable", label: "Emploi du temps", icon: "📅" },
       { href: "/parent/messages", label: "Messages", icon: "💬" },
-      { href: "/parent/notifications", label: "Notifications", icon: "🔔" },
       { href: "/parent/payments", label: "Paiements", icon: "💰" },
       { href: "/parent/profile", label: "Profil", icon: "👤" },
       { href: "/parent/settings", label: "Paramètres", icon: "⚙️" },
@@ -61,13 +72,15 @@ export default function DashboardLayout({ children, userRole, userName }) {
 
   return (
     <div className="dashboard-layout">
+
       {/* SIDEBAR */}
       <aside className={`dashboard-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
+        
         <div className="dashboard-sidebar-brand">
-          <div className="dashboard-sidebar-brand-logo">
           <img src={logoEcole} alt="Logo" className="logo_img"/>
+          <div className="dashboard-sidebar-brand-title">
+            Groupe Scolaire Bab El Firdaouss
           </div>
-          <div className="dashboard-sidebar-brand-title">Groupe Scolaire Bab El Firdaouss</div>
         </div>
 
         <nav className="sidebar-nav">
@@ -75,63 +88,41 @@ export default function DashboardLayout({ children, userRole, userName }) {
             <NavLink
               key={item.href}
               to={item.href}
-              className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
+              className={({ isActive }) =>
+                `sidebar-link ${isActive ? 'active' : ''}`
+              }
             >
-              <span className="icon">{item.icon}</span>
+              <span>{item.icon}</span>
               <span>{item.label}</span>
             </NavLink>
           ))}
         </nav>
 
-        <div className="sidebar-footer">
-          <div className="sidebar-profile">
-            <img
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`}
-              alt={userName}
-              className="sidebar-avatar"
-            />
-            <div className="sidebar-user">
-              <p className="sidebar-user-name">{userName}</p>
-              <p className="sidebar-user-role">{userRole}</p>
-            </div>
-          </div>
-          <NavLink to="/login" className="sidebar-logout">
-            Déconnexion
-          </NavLink>
-        </div>
+  <div className="sidebar-footer">
+  <div className="sidebar-profile">
+   
+    <div className="sidebar-user">
+      <p className="sidebar-user-name">{userName}</p>
+      <p className="sidebar-user-role">{userRole}</p>
+    </div>
+  </div>
+
+  <button onClick={handleLogout} className="sidebar-logout">
+  Déconnexion
+</button>
+</div>
+
       </aside>
 
-      {/* MAIN CONTENT */}
+      {/* MAIN */}
       <div className="dashboard-main">
-        {/* HEADER */}
         <header className="dashboard-header">
-          <button
-            className="sidebar-toggle"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            ☰
-          </button>
-          <h1 className="dashboard-title">
-            {items.find(item => item.href === location.pathname)?.label || 'Dashboard'}
+          <button onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
+          <h1>
+            {items.find(i => i.href === location.pathname)?.label || "Dashboard"}
           </h1>
-
-          <div className="dashboard-actions">
-            <input
-              type="text"
-              placeholder="Rechercher..."
-              className="dashboard-search"
-            />
-            <button className="dashboard-action-btn">🔔</button>
-            <button className="dashboard-action-btn">⚙️</button>
-            <img
-              src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${userName}`}
-              alt={userName}
-              className="dashboard-avatar"
-            />
-          </div>
         </header>
 
-        {/* CONTENT */}
         <div className="dashboard-content">
           {children}
         </div>

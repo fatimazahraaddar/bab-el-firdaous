@@ -1,18 +1,41 @@
 import DashboardLayout from '../../pages/Layouts/DashboardLayout';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
 export default function EditTransport() {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  // 🔥 Données simulées (à remplacer par API)
   const [form, setForm] = useState({
-    number: "Bus 1",
-    driver: "Ali",
-    students: 20,
-    capacity: 30
+    number: "",
+    driver_name: "",
+    capacity: "",
+    zone: ""
   });
+
+  const [studentsCount, setStudentsCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  // 🔄 FETCH BUS
+  useEffect(() => {
+    fetch(`http://localhost:8000/api/buses/${id}`)
+      .then(res => res.json())
+      .then(data => {
+        setForm({
+          number: data.number || "",
+          driver_name: data.driver_name || "",
+          capacity: data.capacity || "",
+          zone: data.zone || ""
+        });
+
+        setStudentsCount(data.students?.length || 0);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [id]);
 
   const handleChange = (e) => {
     setForm({
@@ -21,14 +44,36 @@ export default function EditTransport() {
     });
   };
 
-  const handleSubmit = (e) => {
+  // 🔥 UPDATE API
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    console.log("Update Bus:", id, form);
+    try {
+      const res = await fetch(`http://localhost:8000/api/buses/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(form)
+      });
 
-    // 🔗 API Laravel plus tard
-    navigate('/admin/transport');
+      if (!res.ok) throw new Error();
+
+      navigate('/admin/transport');
+
+    } catch (err) {
+      console.error(err);
+    }
   };
+
+  // ✅ LOADING
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="loading">Chargement...</div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -40,7 +85,7 @@ export default function EditTransport() {
 
           <form onSubmit={handleSubmit}>
 
-            {/* 🚌 Numéro */}
+            {/* Bus */}
             <div className="mb-3">
               <label>Numéro du bus</label>
               <input
@@ -53,47 +98,55 @@ export default function EditTransport() {
               />
             </div>
 
-            {/* 👨‍✈️ Chauffeur */}
+            {/* Chauffeur */}
             <div className="mb-3">
               <label>Chauffeur</label>
               <input
                 type="text"
-                name="driver"
+                name="driver_name"
                 className="form-control"
-                value={form.driver}
+                value={form.driver_name}
                 onChange={handleChange}
                 required
               />
             </div>
 
-            {/* 👨‍🎓 Nombre élèves */}
+            {/* Capacité */}
             <div className="mb-3">
-              <label>Nombre d’élèves</label>
-              <input
-                type="number"
-                name="students"
-                className="form-control"
-                value={form.students}
-                onChange={handleChange}
-              />
-            </div>
-
-            {/* 🚐 Capacité */}
-            <div className="mb-3">
-              <label>Capacité du bus</label>
+              <label>Capacité</label>
               <input
                 type="number"
                 name="capacity"
                 className="form-control"
                 value={form.capacity}
                 onChange={handleChange}
+                required
               />
             </div>
 
-            {/* ⚠️ Info */}
-            {form.students > form.capacity && (
+            {/* Zone */}
+            <div className="mb-3">
+              <label>Zone</label>
+              <input
+                type="text"
+                name="zone"
+                className="form-control"
+                value={form.zone}
+                onChange={handleChange}
+              />
+            </div>
+
+            {/* INFO */}
+            <div className="mb-3">
+              <strong>Occupation :</strong>{" "}
+              <span className={`badge ${studentsCount > form.capacity ? "bg-danger" : "bg-success"}`}>
+                {studentsCount} / {form.capacity}
+              </span>
+            </div>
+
+            {studentsCount > form.capacity && (
               <div className="alert alert-danger">
-                ⚠️ Nombre d’élèves dépasse la capacité !
+                ⚠️ Capacité dépassée !
               </div>
             )}
 

@@ -3,76 +3,104 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\TimeTable;
+use App\Models\Timetable;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
-class TimeTableController extends Controller
+class TimetableController extends Controller
 {
+    // ✅ LISTE
     public function index()
     {
         $user = Auth::user();
 
-        if ($user->role === 'student') {
-            // Filter by class, but for now all
-            $timetables = TimeTable::all();
-        } elseif ($user->role === 'teacher') {
-            $timetables = TimeTable::where('teacher', $user->name)->get();
-        } else {
-            $timetables = TimeTable::all();
+        // 🔥 ADMIN → tout voir
+        if ($user->role === 'admin') {
+            return response()->json(
+                Timetable::with(['class', 'subject'])->get()
+            );
         }
 
-        return response()->json($timetables);
+        // 🔥 PARENT → emploi du temps des enfants
+        if ($user->role === 'parent') {
+
+            $guardian = $user->parentProfile;
+
+            if (!$guardian) {
+                return response()->json([]);
+            }
+
+            $classIds = $guardian->children()->pluck('class_id');
+
+            $timetables = Timetable::whereIn('class_id', $classIds)
+                ->with(['class', 'subject'])
+                ->orderBy('day')
+                ->orderBy('start_time')
+                ->get();
+
+            return response()->json($timetables);
+        }
+
+        return response()->json(['message' => 'Unauthorized'], 403);
     }
 
+    // ✅ CREATE
     public function store(Request $request)
     {
         if (Auth::user()->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $request->validate([
+        $validated = $request->validate([
+            'class_id' => 'required|exists:school_classes,id',
+            'subject_id' => 'required|exists:subjects,id',
             'day' => 'required|string',
             'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i',
-            'subject' => 'required|string',
-            'teacher' => 'required|string',
-            'class' => 'required|string',
-            'room' => 'nullable|string',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'room' => 'nullable|string'
         ]);
 
-        $timetable = TimeTable::create($request->all());
+        $timetable = Timetable::create($validated);
 
-        return response()->json($timetable, 201);
+        return response()->json(
+            $timetable->load(['class', 'subject']),
+            201
+        );
     }
 
-    public function show(TimeTable $timetable)
+    // ✅ SHOW
+    public function show(Timetable $timetable)
     {
-        return response()->json($timetable);
+        return response()->json(
+            $timetable->load(['class', 'subject'])
+        );
     }
 
-    public function update(Request $request, TimeTable $timetable)
+    // ✅ UPDATE
+    public function update(Request $request, Timetable $timetable)
     {
         if (Auth::user()->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $request->validate([
+        $validated = $request->validate([
+            'class_id' => 'required|exists:school_classes,id',
+            'subject_id' => 'required|exists:subjects,id',
             'day' => 'required|string',
             'start_time' => 'required|date_format:H:i',
-            'end_time' => 'required|date_format:H:i',
-            'subject' => 'required|string',
-            'teacher' => 'required|string',
-            'class' => 'required|string',
-            'room' => 'nullable|string',
+            'end_time' => 'required|date_format:H:i|after:start_time',
+            'room' => 'nullable|string'
         ]);
 
-        $timetable->update($request->all());
+        $timetable->update($validated);
 
-        return response()->json($timetable);
+        return response()->json(
+            $timetable->load(['class', 'subject'])
+        );
     }
 
-    public function destroy(TimeTable $timetable)
+    // ✅ DELETE
+    public function destroy(Timetable $timetable)
     {
         if (Auth::user()->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
@@ -80,6 +108,8 @@ class TimeTableController extends Controller
 
         $timetable->delete();
 
-        return response()->json(['message' => 'Timetable deleted']);
+        return response()->json([
+            'message' => 'Timetable deleted'
+        ]);
     }
 }

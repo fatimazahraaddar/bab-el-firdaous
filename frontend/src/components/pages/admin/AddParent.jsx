@@ -12,15 +12,38 @@ export default function AddParent() {
     job: ""
   });
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log(form);
+    setLoading(true);
+    setError("");
 
-    navigate('/admin/parents');
+    try {
+      const res = await fetch("http://localhost:8000/api/parents", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(form)
+      });
+
+      if (!res.ok) {
+        throw new Error("Erreur lors de l'ajout");
+      }
+
+      navigate('/admin/parents');
+
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -31,15 +54,54 @@ export default function AddParent() {
 
         <div className="card shadow p-4">
 
+          {/* ❗ erreur */}
+          {error && <div className="alert alert-danger">{error}</div>}
+
           <form onSubmit={handleSubmit}>
 
-            <input type="text" name="name" className="form-control mb-3" placeholder="Nom" onChange={handleChange} />
-            <input type="text" name="phone" className="form-control mb-3" placeholder="Téléphone" onChange={handleChange} />
-            <input type="email" name="email" className="form-control mb-3" placeholder="Email" onChange={handleChange} />
-            <input type="text" name="job" className="form-control mb-3" placeholder="Profession" onChange={handleChange} />
+            <input
+              type="text"
+              name="name"
+              className="form-control mb-3"
+              placeholder="Nom"
+              value={form.name}
+              onChange={handleChange}
+              required
+            />
+
+            <input
+              type="text"
+              name="phone"
+              className="form-control mb-3"
+              placeholder="Téléphone"
+              value={form.phone}
+              onChange={handleChange}
+              required
+            />
+
+            <input
+              type="email"
+              name="email"
+              className="form-control mb-3"
+              placeholder="Email"
+              value={form.email}
+              onChange={handleChange}
+              required
+            />
+
+            <input
+              type="text"
+              name="job"
+              className="form-control mb-3"
+              placeholder="Profession"
+              value={form.job}
+              onChange={handleChange}
+            />
 
             <div className="text-end">
-              <button className="btn btn-primary">Enregistrer</button>
+              <button className="btn btn-primary" disabled={loading}>
+                {loading ? "Enregistrement..." : "Enregistrer"}
+              </button>
             </div>
 
           </form>

@@ -6,27 +6,32 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
         Schema::create('timetables', function (Blueprint $table) {
             $table->id();
-            $table->string('day'); // Monday, Tuesday, etc.
+
+            $table->string('day');
+
             $table->time('start_time');
             $table->time('end_time');
-            $table->string('subject');
-            $table->string('teacher');
-            $table->string('class');
+
+            // ✅ relations propres
+            $table->foreignId('class_id')
+                  ->constrained('school_classes')
+                  ->cascadeOnDelete();
+
+            $table->foreignId('subject_id')
+                  ->nullable() // 🔥 important si pas encore subjects
+                  ->constrained()
+                  ->nullOnDelete();
+
             $table->string('room')->nullable();
+
             $table->timestamps();
         });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
         Schema::dropIfExists('timetables');

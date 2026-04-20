@@ -12,10 +12,21 @@ class Announcement extends Model
     protected $fillable = [
         'title',
         'content',
-        'author_id',
+        'type',
         'target',
+        'start_date',
+        'end_date',
+        'is_pinned',   // 🔥 IMPORTANT
+        'author_id'
     ];
 
+    protected $casts = [
+        'start_date' => 'datetime',
+        'end_date' => 'datetime',
+        'is_pinned' => 'boolean'
+    ];
+
+    // 🔥 auteur (admin)
     public function author()
     {
         return $this->belongsTo(User::class, 'author_id');

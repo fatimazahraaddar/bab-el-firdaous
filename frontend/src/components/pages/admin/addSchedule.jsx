@@ -1,19 +1,32 @@
 import DashboardLayout from '../../pages/Layouts/DashboardLayout';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function AddSchedule() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    class: "",
-    subject: "",
-    teacher: "",
+    class_id: "",
+    subject_id: "",
     day: "",
-    start: "",
-    end: "",
+    start_time: "",
+    end_time: "",
     room: ""
   });
+
+  const [classes, setClasses] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // 🔄 Charger classes
+  useEffect(() => {
+    fetch("http://localhost:8000/api/classes")
+      .then(res => res.json())
+      .then(data => {
+        console.log("CLASSES:", data);
+        setClasses(Array.isArray(data) ? data : []);
+      })
+      .catch(err => console.error(err));
+  }, []);
 
   const handleChange = (e) => {
     setForm({
@@ -22,14 +35,41 @@ export default function AddSchedule() {
     });
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
 
-    console.log("New Schedule:", form);
+    const token = localStorage.getItem("token");
 
-    // 🔗 API Laravel plus tard
+    try {
+      const res = await fetch("http://localhost:8000/api/timetables", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(form)
+      });
 
-    navigate('/admin/timetable');
+      const data = await res.json();
+
+      console.log("RESPONSE:", data);
+
+      if (!res.ok) {
+        alert(data.message || "Erreur");
+        return;
+      }
+
+      alert("Emploi du temps ajouté ✅");
+      navigate('/admin/timetable');
+
+    } catch (err) {
+      console.error(err);
+      alert("Erreur serveur");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -43,127 +83,55 @@ export default function AddSchedule() {
           <form onSubmit={handleSubmit}>
 
             {/* Classe */}
-            <div className="mb-3">
-              <label className="form-label">Classe</label>
-              <select
-                name="class"
-                className="form-select"
-                value={form.class}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Choisir une classe</option>
-                <option value="6ème A">6ème A</option>
-                <option value="3ème A">3ème A</option>
-                <option value="1ère Bac">1ère Bac</option>
-              </select>
-            </div>
+            <select name="class_id" className="form-select mb-3" onChange={handleChange} required>
+              <option value="">Choisir une classe</option>
+              {classes.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
 
-            {/* Matière */}
-            <div className="mb-3">
-              <label className="form-label">Matière</label>
-              <select
-                name="subject"
-                className="form-select"
-                value={form.subject}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Choisir une matière</option>
-                <option value="Math">Mathématiques</option>
-                <option value="Français">Français</option>
-                <option value="Informatique">Informatique</option>
-              </select>
-            </div>
-
-            {/* Enseignant */}
-            <div className="mb-3">
-              <label className="form-label">Enseignant</label>
-              <select
-                name="teacher"
-                className="form-select"
-                value={form.teacher}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Choisir un enseignant</option>
-                <option value="Mr Ahmed">Mr Ahmed</option>
-                <option value="Mme Fatima">Mme Fatima</option>
-              </select>
-            </div>
+            {/* Matière (temp) */}
+            <input
+              name="subject_id"
+              className="form-control mb-3"
+              placeholder="ID matière (temp)"
+              onChange={handleChange}
+              required
+            />
 
             {/* Jour */}
-            <div className="mb-3">
-              <label className="form-label">Jour</label>
-              <select
-                name="day"
-                className="form-select"
-                value={form.day}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Choisir un jour</option>
-                <option>Lundi</option>
-                <option>Mardi</option>
-                <option>Mercredi</option>
-                <option>Jeudi</option>
-                <option>Vendredi</option>
-                <option>Samedi</option>
-              </select>
-            </div>
+            <select name="day" className="form-select mb-3" onChange={handleChange} required>
+              <option value="">Jour</option>
+              <option value="lundi">Lundi</option>
+              <option value="mardi">Mardi</option>
+              <option value="mercredi">Mercredi</option>
+              <option value="jeudi">Jeudi</option>
+              <option value="vendredi">Vendredi</option>
+              <option value="samedi">Samedi</option>
+            </select>
 
             {/* Heure */}
             <div className="row mb-3">
               <div className="col-md-6">
-                <label className="form-label">Heure début</label>
-                <input
-                  type="time"
-                  name="start"
-                  className="form-control"
-                  value={form.start}
-                  onChange={handleChange}
-                  required
-                />
+                <input type="time" name="start_time" className="form-control" onChange={handleChange} required />
               </div>
-
               <div className="col-md-6">
-                <label className="form-label">Heure fin</label>
-                <input
-                  type="time"
-                  name="end"
-                  className="form-control"
-                  value={form.end}
-                  onChange={handleChange}
-                  required
-                />
+                <input type="time" name="end_time" className="form-control" onChange={handleChange} required />
               </div>
             </div>
 
             {/* Salle */}
-            <div className="mb-3">
-              <label className="form-label">Salle</label>
-              <input
-                type="text"
-                name="room"
-                className="form-control"
-                placeholder="Ex: Salle B12"
-                value={form.room}
-                onChange={handleChange}
-              />
-            </div>
+            <input
+              type="text"
+              name="room"
+              className="form-control mb-3"
+              placeholder="Salle"
+              onChange={handleChange}
+            />
 
-            {/* Boutons */}
-            <div className="d-flex justify-content-end">
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="btn btn-secondary me-2"
-              >
-                Annuler
-              </button>
-
-              <button type="submit" className="btn btn-primary">
-                Enregistrer
+            <div className="text-end">
+              <button className="btn btn-primary" disabled={loading}>
+                {loading ? "Enregistrement..." : "Enregistrer"}
               </button>
             </div>
 

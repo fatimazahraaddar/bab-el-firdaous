@@ -164,11 +164,13 @@ export default function ContactPage() {
             <p>Retrouvez-nous facilement grâce à la carte interactive.</p>
           </div>
           <div className="map-card rounded-4 shadow-sm overflow-hidden" data-animate>
-            <iframe
-              title="map"
-              src="103 BD d'Oued Oum Rabia, Arrondissement de Hay Hassani, 20640 Casablanca, Maroc"
-              loading="lazy"
-            />
+           <iframe
+  src="https://maps.google.com/maps?q=Groupe+Scolaire+Bab+El+Firdaousse+Casablanca&output=embed"
+  width="100%"
+  height="400"
+  style={{ border: 0 }}
+  loading="lazy"
+/>
           </div>
         </div>
       </section>

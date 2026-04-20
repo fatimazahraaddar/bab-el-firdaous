@@ -1,24 +1,42 @@
 import DashboardLayout from '../../pages/Layouts/DashboardLayout';
 import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 export default function ReportDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // 🔥 Exemple : rapport paiement
-  const report = {
-    id,
-    type: "Paiements",
-    period: "Avril 2026",
-    totalPaid: 30000,
-    totalUnpaid: 10000
+  const [report, setReport] = useState(null);
+  const [payments, setPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  // 🔄 FETCH REPORT
+  useEffect(() => {
+    fetch(`http://localhost:8000/api/reports/${id}`)
+      .then(res => res.json())
+      .then(data => {
+        setReport(data.summary);
+        setPayments(data.payments);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [id]);
+
+  // 📄 EXPORT PDF
+  const exportPDF = () => {
+    window.open(`http://localhost:8000/api/reports/${id}/pdf`, "_blank");
   };
 
-  const payments = [
-    { student: "Ahmed Benali", amount: 1500, status: "paid" },
-    { student: "Sara Ali", amount: 1500, status: "unpaid" },
-    { student: "Youssef Karim", amount: 1500, status: "paid" }
-  ];
+  if (loading || !report) {
+    return (
+      <DashboardLayout>
+        <div className="loading">Chargement...</div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -35,15 +53,12 @@ export default function ReportDetails() {
 
         {/* Infos */}
         <div className="card shadow p-4 mb-4">
-
-          <h5 className="mb-3">Informations</h5>
-
+          <h5>Informations</h5>
           <p><strong>Type :</strong> {report.type}</p>
           <p><strong>Période :</strong> {report.period}</p>
-
         </div>
 
-        {/* 📊 Résumé */}
+        {/* Stats */}
         <div className="row mb-4">
 
           <div className="col-md-6">
@@ -62,10 +77,10 @@ export default function ReportDetails() {
 
         </div>
 
-        {/* 📋 Liste détaillée */}
+        {/* TABLE */}
         <div className="card shadow p-4">
 
-          <h5 className="mb-3">Détails des paiements</h5>
+          <h5>Détails des paiements</h5>
 
           <table className="table table-hover">
             <thead>
@@ -77,25 +92,19 @@ export default function ReportDetails() {
             </thead>
 
             <tbody>
-              {payments.map((p, i) => (
-                <tr key={i}>
+              {payments.map(p => (
+                <tr key={p.id}>
+                  <td>{p.student?.user?.name}</td>
 
-                  <td>{p.student}</td>
-
-                  <td>
-                    <strong>{p.amount} DH</strong>
-                  </td>
+                  <td><strong>{p.amount} DH</strong></td>
 
                   <td>
                     <span className={`badge ${
-                      p.status === "paid"
-                        ? "bg-success"
-                        : "bg-danger"
+                      p.status === "paid" ? "bg-success" : "bg-danger"
                     }`}>
                       {p.status === "paid" ? "Payé" : "Non payé"}
                     </span>
                   </td>
-
                 </tr>
               ))}
             </tbody>
@@ -104,9 +113,9 @@ export default function ReportDetails() {
 
         </div>
 
-        {/* 📄 Export */}
+        {/* EXPORT */}
         <div className="mt-4 text-end">
-          <button className="btn btn-outline-primary">
+          <button onClick={exportPDF} className="btn btn-outline-primary">
             📄 Export PDF
           </button>
         </div>

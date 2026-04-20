@@ -1,5 +1,5 @@
 import DashboardLayout from '../../pages/Layouts/DashboardLayout';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function SendMessage() {
@@ -12,18 +12,20 @@ export default function SendMessage() {
     message: ""
   });
 
-  const contacts = {
-    parent: [
-      { id: "p1", name: "Parent Ahmed" },
-      { id: "p2", name: "Parent Sara" }
-    ],
-    student: [
-      { id: "s1", name: "Ahmed (élève)" }
-    ],
-    teacher: [
-      { id: "t1", name: "Mr Ahmed (prof)" }
-    ]
-  };
+  const [contacts, setContacts] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  // 🔄 Charger contacts selon type
+  useEffect(() => {
+    if (!form.receiverType) return;
+
+    fetch(`http://localhost:8000/api/users?role=${form.receiverType}`)
+      .then(res => res.json())
+      .then(data => {
+        setContacts(data);
+      })
+      .catch(err => console.error(err));
+  }, [form.receiverType]);
 
   const handleChange = (e) => {
     setForm({
@@ -32,23 +34,34 @@ export default function SendMessage() {
     });
   };
 
-  const handleSubmit = (e) => {
+  // 📩 ENVOI MESSAGE
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!form.receiverType || !form.receiver || !form.message) return;
+    if (!form.receiver || !form.message) return;
 
-    console.log("Message envoyé :", form);
+    setLoading(true);
 
-    alert("Message envoyé avec succès !");
+    try {
+      const res = await fetch("http://localhost:8000/api/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(form)
+      });
 
-    setForm({
-      receiverType: "",
-      receiver: "",
-      subject: "",
-      message: ""
-    });
+      if (!res.ok) throw new Error("Erreur envoi");
 
-    navigate(-1);
+      alert("Message envoyé avec succès !");
+      navigate(-1);
+
+    } catch (err) {
+      console.error(err);
+      alert("Erreur lors de l'envoi");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -89,7 +102,7 @@ export default function SendMessage() {
                 >
                   <option value="">Choisir</option>
 
-                  {contacts[form.receiverType].map((c) => (
+                  {contacts.map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
@@ -108,7 +121,6 @@ export default function SendMessage() {
                 className="form-control"
                 value={form.subject}
                 onChange={handleChange}
-                placeholder="Ex: Paiement en retard"
               />
             </div>
 
@@ -134,8 +146,8 @@ export default function SendMessage() {
                 Annuler
               </button>
 
-              <button className="btn btn-primary">
-                Envoyer
+              <button className="btn btn-primary" disabled={loading}>
+                {loading ? "Envoi..." : "Envoyer"}
               </button>
             </div>
 

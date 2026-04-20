@@ -381,6 +381,29 @@
   cursor: not-allowed;
 }
 
+.back-home-btn {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 10;
+
+  text-decoration: none;
+  font-weight: 600;
+  color: white;
+
+  background: rgba(255,255,255,0.15);
+
+
+  padding: 10px 16px;
+  border-radius: 12px;
+
+  transition: 0.3s;
+}
+
+.back-home-btn:hover {
+  background: rgba(255,255,255,0.3);
+}
+
 .spinner {
   width: 14px;
   height: 14px;
@@ -722,4 +745,52 @@
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+/* 🔥 CONTAINER LOGO */
+.logo-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 30px;
+}
+
+/* 🔥 CARD LOGO */
+.logo-card {
+  background: white;
+  padding: 25px;
+  border-radius: 30px; /* ✅ border radius smooth */
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  transition: all 0.3s ease;
+}
+
+/* 🔥 IMAGE */
+.logo-img {
+  width: 140px;
+  height: 140px;
+  object-fit: contain;
+  border-radius: 20px; /* ✅ arrondi image */
+  transition: all 0.3s ease;
+}
+
+/* 🚀 HOVER EFFECT */
+.logo-card:hover {
+  transform: translateY(-5px) scale(1.05);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+}
+
+/* ✨ IMAGE HOVER */
+.logo-card:hover .logo-img {
+  transform: scale(1.1);
+}
+
+/* 🌈 BONUS (glow léger comme ton design) */
+.logo-card:hover {
+  box-shadow: 
+    0 25px 60px rgba(0, 0, 0, 0.25),
+    0 0 25px rgba(255, 255, 255, 0.2);
 }

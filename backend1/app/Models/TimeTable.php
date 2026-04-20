@@ -4,8 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\SchoolClass;
+use App\Models\Subject;
 
-class TimeTable extends Model
+class Timetable extends Model
 {
     use HasFactory;
 
@@ -13,14 +15,20 @@ class TimeTable extends Model
         'day',
         'start_time',
         'end_time',
-        'subject',
-        'teacher',
-        'class',
+        'subject_id',
+        'class_id',
         'room',
     ];
 
-    protected $casts = [
-        'start_time' => 'datetime:H:i',
-        'end_time' => 'datetime:H:i',
-    ];
+    // 🏫 CLASS
+    public function class()
+    {
+        return $this->belongsTo(SchoolClass::class, 'class_id');
+    }
+
+    // 📚 SUBJECT
+    public function subject()
+    {
+        return $this->belongsTo(Subject::class);
+    }
 }

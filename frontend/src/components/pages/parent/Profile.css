@@ -1,0 +1,24 @@
+.profile-left {
+  text-align: center;
+}
+
+.profile-img {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-bottom: 10px;
+}
+
+.children-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.child-item {
+  background: #eef2ff;
+  padding: 8px 12px;
+  border-radius: 10px;
+}

@@ -1,21 +1,44 @@
 import DashboardLayout from "../../pages/Layouts/DashboardLayout";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 export default function AbsenceDetail() {
-  const absence = {
-    student: "Ahmed Benali",
-    course: "Mathématiques",
-    date: "2026-04-10",
-    status: "Absent",
-    teacher: "Mme Fatima",
-    note: "Absence non justifiée",
-  };
-  const getStatusColor = (status) => {
-    if (status === "Absent") return "bg-danger";
-    if (status === "Présent") return "bg-success";
-    if (status === "Retard") return "bg-warning";
-  };
   const navigate = useNavigate();
+  const { id } = useParams(); // 🔥 récupérer ID depuis URL
+
+  const [absence, setAbsence] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    fetch(`http://localhost:8000/api/absences/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setAbsence(data);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [id]);
+
+  const getStatusColor = (status) => {
+    if (status === "absent") return "bg-danger";
+    if (status === "present") return "bg-success";
+    if (status === "late") return "bg-warning";
+    return "bg-secondary";
+  };
+
+  if (loading) return <p>Chargement...</p>;
+  if (!absence) return <p>Absence introuvable</p>;
+
   return (
     <DashboardLayout userRole="admin" userName="Admin User">
       <div className="container-fluid">
@@ -24,34 +47,35 @@ export default function AbsenceDetail() {
         <div className="card shadow p-4">
           <div className="row mb-3">
             <div className="col-md-6">
-              <strong>Élève :</strong> {absence.student}
+              <strong>Élève :</strong> {absence.student?.user?.name || "—"}
             </div>
             <div className="col-md-6">
-              <strong>Cours :</strong> {absence.course}
+              <strong>Raison :</strong> {absence.reason || "—"}
             </div>
           </div>
 
           <div className="row mb-3">
             <div className="col-md-6">
-              <strong>Date :</strong> {absence.date}
+              <strong>Date :</strong>{" "}
+              {new Date(absence.date).toLocaleDateString()}
             </div>
             <div className="col-md-6">
-              <strong>Professeur :</strong> {absence.teacher}
+              <strong>Justifiée :</strong> {absence.justified ? "Oui" : "Non"}
             </div>
           </div>
 
           <div className="row mb-3">
             <div className="col-md-6">
               <strong>Statut :</strong>{" "}
-              <span className={`badge ${getStatusColor(absence.status)}`}>
-                {absence.status}
+              <span className={`badge ${getStatusColor(absence.status || (absence.justified ? "present" : "absent"))}`}>
+                {absence.status || (absence.justified ? "present" : "absent")}
               </span>
             </div>
           </div>
 
           <div className="mb-3">
             <strong>Remarque :</strong>
-            <p className="mt-2">{absence.note}</p>
+            <p className="mt-2">{absence.reason || "Aucune remarque"}</p>
           </div>
 
           <button onClick={() => navigate(-1)} className="btn btn-secondary">

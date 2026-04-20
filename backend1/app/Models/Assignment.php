@@ -13,17 +13,18 @@ class Assignment extends Model
         'title',
         'description',
         'due_date',
-        'teacher_id',
         'subject',
-        'class',
+        'class_id',
+        'status'
     ];
 
     protected $casts = [
         'due_date' => 'date',
     ];
 
-    public function teacher()
+    // 🔥 relation classe
+    public function class()
     {
-        return $this->belongsTo(User::class, 'teacher_id');
+        return $this->belongsTo(ClassModel::class, 'class_id');
     }
 }

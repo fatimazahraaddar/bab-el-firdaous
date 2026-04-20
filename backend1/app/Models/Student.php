@@ -10,25 +10,36 @@ class Student extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',
+        'user_id',     // 🔥 IMPORTANT
+        'level',
         'class',
-        'parent_id',
-        'transport_type',
-        'bus_number',
+        'guardian_id',
+        'phone',
+        'address',
+        'transport',
+        'bus_id'
     ];
 
-    protected $casts = [
-        'transport_type' => 'string',
-    ];
+    // 🔗 RELATIONS
 
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function parent()
+    public function class()
     {
-        return $this->belongsTo(Guardian::class, 'parent_id');
+        return $this->belongsTo(ClassModel::class, 'class_id');
+    }
+
+    public function guardian()
+    {
+        return $this->belongsTo(Guardian::class);
+    }
+
+    public function bus()
+    {
+        return $this->belongsTo(Bus::class);
     }
 
     public function absences()
@@ -38,6 +49,7 @@ class Student extends Model
 
     public function payments()
     {
-        return $this->hasMany(Payment::class, 'student_id');
+        return $this->hasMany(Payment::class);
     }
+
 }

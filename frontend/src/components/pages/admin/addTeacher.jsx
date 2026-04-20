@@ -1,5 +1,5 @@
 import DashboardLayout from '../../pages/Layouts/DashboardLayout';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function AddTeacher() {
@@ -10,9 +10,23 @@ export default function AddTeacher() {
     email: "",
     password: "",
     phone: "",
-    subject: "",
-    classes: []
+    subject_id: "",
+    class_ids: []
   });
+
+  const [classes, setClasses] = useState([]);
+  const [subjects, setSubjects] = useState([]);
+
+  // 🔄 charger depuis API
+  useEffect(() => {
+    fetch("http://localhost:8000/api/classes")
+      .then(res => res.json())
+      .then(setClasses);
+
+    fetch("http://localhost:8000/api/subjects")
+      .then(res => res.json())
+      .then(setSubjects);
+  }, []);
 
   const handleChange = (e) => {
     setForm({
@@ -21,30 +35,40 @@ export default function AddTeacher() {
     });
   };
 
-  // 🎓 gérer plusieurs classes
-  const handleClassChange = (className) => {
-    if (form.classes.includes(className)) {
+  const handleClassChange = (id) => {
+    if (form.class_ids.includes(id)) {
       setForm({
         ...form,
-        classes: form.classes.filter(c => c !== className)
+        class_ids: form.class_ids.filter(c => c !== id)
       });
     } else {
       setForm({
         ...form,
-        classes: [...form.classes, className]
+        class_ids: [...form.class_ids, id]
       });
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("New Teacher:", form);
 
-    // 🔗 API Laravel plus tard
-    navigate('/admin/teachers');
+    try {
+      const res = await fetch("http://localhost:8000/api/teachers", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(form)
+      });
+
+      if (!res.ok) throw new Error("Erreur");
+
+      navigate('/admin/teachers');
+
+    } catch (err) {
+      console.error(err);
+    }
   };
-
-  const classOptions = ["6ème A", "3ème A", "1ère Bac"];
 
   return (
     <DashboardLayout userRole="admin" userName="Admin User">
@@ -56,96 +80,41 @@ export default function AddTeacher() {
 
           <form onSubmit={handleSubmit}>
 
-            {/* 👤 Infos */}
-            <h5 className="mb-3">Informations</h5>
+            <input name="name" className="form-control mb-3" placeholder="Nom" onChange={handleChange} required />
 
-            <input
-              type="text"
-              name="name"
-              className="form-control mb-3"
-              placeholder="Nom complet"
-              onChange={handleChange}
-              required
-            />
+            <input name="email" className="form-control mb-3" placeholder="Email" onChange={handleChange} required />
 
-            <input
-              type="email"
-              name="email"
-              className="form-control mb-3"
-              placeholder="Email"
-              onChange={handleChange}
-              required
-            />
+            <input type="password" name="password" className="form-control mb-3" placeholder="Mot de passe" onChange={handleChange} required />
 
-            <input
-              type="password"
-              name="password"
-              className="form-control mb-3"
-              placeholder="Mot de passe"
-              onChange={handleChange}
-              required
-            />
+            <input name="phone" className="form-control mb-3" placeholder="Téléphone" onChange={handleChange} />
 
-            <input
-              type="text"
-              name="phone"
-              className="form-control mb-3"
-              placeholder="Téléphone"
-              onChange={handleChange}
-            />
+            {/* Matière dynamique */}
+            <select name="subject_id" className="form-select mb-3" onChange={handleChange} required>
+              <option value="">Choisir matière</option>
+              {subjects.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
 
-            {/* 📚 Matière */}
-            <div className="mb-3">
-              <label>Matière</label>
-              <select
-                name="subject"
-                className="form-select"
-                onChange={handleChange}
-                required
-              >
-                <option value="">Choisir</option>
-                <option value="Math">Mathématiques</option>
-                <option value="Français">Français</option>
-                <option value="Informatique">Informatique</option>
-              </select>
-            </div>
-
-            {/* 🎓 Classes multiples */}
+            {/* Classes multiples dynamiques */}
             <div className="mb-3">
               <label>Classes</label>
 
-              {classOptions.map((c) => (
-                <div key={c} className="form-check">
+              {classes.map(c => (
+                <div key={c.id} className="form-check">
                   <input
                     type="checkbox"
                     className="form-check-input"
-                    checked={form.classes.includes(c)}
-                    onChange={() => handleClassChange(c)}
+                    checked={form.class_ids.includes(c.id)}
+                    onChange={() => handleClassChange(c.id)}
                   />
-                  <label className="form-check-label">{c}</label>
+                  <label>{c.name}</label>
                 </div>
               ))}
             </div>
 
-            {/* 📸 Photo */}
-            <div className="mb-3">
-              <label>Photo</label>
-              <input type="file" className="form-control" />
-            </div>
-
-            {/* Boutons */}
             <div className="text-end">
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="btn btn-secondary me-2"
-              >
-                Annuler
-              </button>
-
-              <button className="btn btn-primary">
-                Enregistrer
-              </button>
+              <button className="btn btn-primary">Enregistrer</button>
             </div>
 
           </form>

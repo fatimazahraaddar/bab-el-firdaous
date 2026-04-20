@@ -1,33 +1,47 @@
 import DashboardLayout from '../../pages/Layouts/DashboardLayout';
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Teachers() {
   const navigate = useNavigate();
 
-  const [teachers, setTeachers] = useState([
-    {
-      id: 1,
-      name: "Mr Ahmed",
-      email: "ahmed@school.com",
-      phone: "0600000000",
-      subject: "Math",
-      classes: ["3ème A", "6ème A"]
-    },
-    {
-      id: 2,
-      name: "Mme Fatima",
-      email: "fatima@school.com",
-      phone: "0611111111",
-      subject: "Français",
-      classes: ["3ème A"]
-    }
-  ]);
+  const [teachers, setTeachers] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  // 🔄 FETCH API
+  useEffect(() => {
+    fetch("http://localhost:8000/api/teachers")
+      .then(res => res.json())
+      .then(data => {
+        setTeachers(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
+  // ⏳ LOADING
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="text-center mt-5">Chargement...</div>
+      </DashboardLayout>
+    );
+  }
+
+  // ❌ DELETE API
   const handleDelete = (id) => {
-    if (window.confirm("Supprimer cet enseignant ?")) {
-      setTeachers(teachers.filter(t => t.id !== id));
-    }
+    if (!window.confirm("Supprimer cet enseignant ?")) return;
+
+    fetch(`http://localhost:8000/api/teachers/${id}`, {
+      method: "DELETE"
+    })
+      .then(() => {
+        setTeachers(teachers.filter(t => t.id !== id));
+      })
+      .catch(err => console.error(err));
   };
 
   return (
@@ -46,7 +60,7 @@ export default function Teachers() {
           </button>
         </div>
 
-        {/* Tableau */}
+        {/* Table */}
         <div className="card shadow p-3">
 
           <table className="table table-hover align-middle">
@@ -54,7 +68,6 @@ export default function Teachers() {
               <tr>
                 <th>Nom</th>
                 <th>Email</th>
-                <th>Téléphone</th>
                 <th>Matière</th>
                 <th>Classes</th>
                 <th>Actions</th>
@@ -66,23 +79,31 @@ export default function Teachers() {
                 teachers.map((teacher) => (
                   <tr key={teacher.id}>
 
-                    <td>{teacher.name}</td>
-                    <td>{teacher.email}</td>
-                    <td>{teacher.phone}</td>
+                    {/* 🔥 NAME depuis user */}
+                    <td>{teacher.user?.name}</td>
+
+                    <td>{teacher.user?.email}</td>
+
                     <td>
                       <span className="badge bg-primary">
-                        {teacher.subject}
+                        {teacher.subject?.name || "N/A"}
                       </span>
                     </td>
 
+                    {/* 🎓 Classes */}
                     <td>
-                      {teacher.classes.map((c, i) => (
-                        <span key={i} className="badge bg-secondary me-1">
-                          {c}
-                        </span>
-                      ))}
+                      {teacher.classes?.length > 0 ? (
+                        teacher.classes.map((c) => (
+                          <span key={c.id} className="badge bg-secondary me-1">
+                            {c.name}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-muted">Aucune</span>
+                      )}
                     </td>
 
+                    {/* ACTIONS */}
                     <td>
 
                       <button
@@ -112,7 +133,7 @@ export default function Teachers() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan="6" className="text-center">
+                  <td colSpan="5" className="text-center">
                     Aucun enseignant trouvé
                   </td>
                 </tr>

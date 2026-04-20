@@ -1,24 +1,55 @@
 import DashboardLayout from "../../pages/Layouts/DashboardLayout";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import axios from "axios";
 
 export default function ParentProfile() {
 
-  const [parent, setParent] = useState({
-    name: "Mohamed Ali",
-    email: "parent@email.com",
-    phone: "0600000000",
-    children: ["Ahmed Ali", "Sara Ali"],
-    photo: null
-  });
-
+  const [parent, setParent] = useState(null);
   const [preview, setPreview] = useState("https://via.placeholder.com/120");
   const [editing, setEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
 
+  // 🔥 LOAD DATA
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        const res = await axios.get("http://localhost:8000/api/user", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json"
+          }
+        });
+
+        setParent(res.data);
+        setPreview(res.data.photo || "https://via.placeholder.com/120");
+
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
+  // 🔄 LOADING
+  if (loading || !parent) {
+    return (
+      <DashboardLayout userRole="parent" userName="Parent User">
+        <div className="p-4">Chargement du profil...</div>
+      </DashboardLayout>
+    );
+  }
+
+  // 🔄 INPUT
   const handleChange = (e) => {
     setParent({ ...parent, [e.target.name]: e.target.value });
   };
 
-  // 📸 upload photo
+  // 📸 PHOTO
   const handlePhoto = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -27,132 +58,160 @@ export default function ParentProfile() {
     setPreview(URL.createObjectURL(file));
   };
 
-  const save = () => {
-    console.log(parent);
-    setEditing(false);
-    alert("Profil mis à jour !");
+  // 💾 SAVE
+  const save = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      const formData = new FormData();
+      formData.append("name", parent.name);
+      formData.append("email", parent.email);
+      formData.append("phone", parent.phone);
+
+      if (parent.photo instanceof File) {
+        formData.append("photo", parent.photo);
+      }
+
+      await axios.post("http://localhost:8000/api/profile/update", formData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "multipart/form-data"
+        }
+      });
+
+      setEditing(false);
+      alert("✅ Profil mis à jour");
+
+    } catch (err) {
+      console.error(err);
+      alert("❌ Erreur lors de la mise à jour");
+    }
   };
 
   return (
     <DashboardLayout userRole="parent" userName={parent.name}>
-      <div className="container-fluid">
+
+      <div className="premium-dashboard">
 
         {/* HEADER */}
-        <div className="mb-4">
-          <h2>👨‍👩‍👧 Profil Parent</h2>
-          <p>Gérer vos informations</p>
+        <div className="premium-header">
+          <div>
+            <h1>👨‍👩‍👧 Profil Parent</h1>
+            <p>Gérez vos informations personnelles</p>
+          </div>
         </div>
 
-        <div className="row">
+        <div className="premium-grid">
 
-          {/* LEFT */}
-          <div className="col-md-4">
-            <div className="card shadow p-4 text-center">
+          {/* LEFT CARD */}
+          <div className="premium-card profile-left">
 
-              <img
-                src={preview}
-                alt="profile"
-                className="rounded-circle mb-3"
-                style={{ width: "120px", height: "120px", objectFit: "cover" }}
-              />
+            <img
+              src={preview}
+              alt="profile"
+              className="profile-img"
+            />
 
-              <h5>{parent.name}</h5>
+            <h3>{parent.name}</h3>
 
-              <span className="badge bg-primary">
-                👨‍👩‍👧 Parent
-              </span>
+            <span className="badge bg-primary">
+              Parent
+            </span>
 
+            {editing && (
               <input
                 type="file"
                 className="form-control mt-3"
                 accept="image/*"
                 onChange={handlePhoto}
               />
+            )}
 
-            </div>
           </div>
 
-          {/* RIGHT */}
-          <div className="col-md-8">
-            <div className="card shadow p-4">
+          {/* RIGHT CARD */}
+          <div className="premium-card">
 
-              <div className="d-flex justify-content-between mb-3">
-                <h5>Informations</h5>
+            <div className="d-flex justify-content-between mb-3">
+              <h4>Informations</h4>
 
-                {!editing ? (
-                  <button
-                    className="btn btn-warning"
-                    onClick={() => setEditing(true)}
-                  >
-                    ✏️ Modifier
-                  </button>
-                ) : (
-                  <button
-                    className="btn btn-success"
-                    onClick={save}
-                  >
-                    💾 Enregistrer
-                  </button>
-                )}
+              {!editing ? (
+                <button
+                  className="btn btn-warning"
+                  onClick={() => setEditing(true)}
+                >
+                  ✏️ Modifier
+                </button>
+              ) : (
+                <button
+                  className="btn btn-success"
+                  onClick={save}
+                >
+                  💾 Enregistrer
+                </button>
+              )}
+            </div>
+
+            <div className="row">
+
+              <div className="col-md-6 mb-3">
+                <label>Nom</label>
+                <input
+                  type="text"
+                  name="name"
+                  className="form-control"
+                  value={parent.name || ""}
+                  disabled={!editing}
+                  onChange={handleChange}
+                />
               </div>
 
-              <div className="row">
+              <div className="col-md-6 mb-3">
+                <label>Email</label>
+                <input
+                  type="email"
+                  name="email"
+                  className="form-control"
+                  value={parent.email || ""}
+                  disabled={!editing}
+                  onChange={handleChange}
+                />
+              </div>
 
-                <div className="col-md-6 mb-3">
-                  <label>Nom</label>
-                  <input
-                    type="text"
-                    name="name"
-                    className="form-control"
-                    value={parent.name}
-                    disabled={!editing}
-                    onChange={handleChange}
-                  />
-                </div>
+              <div className="col-md-6 mb-3">
+                <label>Téléphone</label>
+                <input
+                  type="text"
+                  name="phone"
+                  className="form-control"
+                  value={parent.phone || ""}
+                  disabled={!editing}
+                  onChange={handleChange}
+                />
+              </div>
 
-                <div className="col-md-6 mb-3">
-                  <label>Email</label>
-                  <input
-                    type="email"
-                    name="email"
-                    className="form-control"
-                    value={parent.email}
-                    disabled={!editing}
-                    onChange={handleChange}
-                  />
-                </div>
+              {/* ENFANTS */}
+              <div className="col-md-12">
+                <label>Enfants</label>
 
-                <div className="col-md-6 mb-3">
-                  <label>Téléphone</label>
-                  <input
-                    type="text"
-                    name="phone"
-                    className="form-control"
-                    value={parent.phone}
-                    disabled={!editing}
-                    onChange={handleChange}
-                  />
-                </div>
-
-                <div className="col-md-12 mb-3">
-                  <label>Enfants</label>
-                  <ul className="list-group">
-                    {parent.children.map((child, i) => (
-                      <li key={i} className="list-group-item">
-                        👨‍🎓 {child}
-                      </li>
-                    ))}
-                  </ul>
+                <div className="children-list">
+                  {parent.children?.map((child, i) => (
+                    <div key={i} className="child-item">
+                      👨‍🎓 {child.name || child}
+                    </div>
+                  ))}
                 </div>
 
               </div>
 
             </div>
+
           </div>
 
         </div>
 
       </div>
+
     </DashboardLayout>
   );
 }

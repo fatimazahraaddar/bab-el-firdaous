@@ -1,32 +1,53 @@
 import DashboardLayout from '../../pages/Layouts/DashboardLayout';
 import { useParams, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function PaymentDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const [payment, setPayment] = useState({
-    id,
-    student: "Ahmed Benali",
-    parent: "Mohamed Benali",
-    amount: 1500,
-    date: "2026-04-01",
-    status: "unpaid"
-  });
+  const [payment, setPayment] = useState(null);
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const history = [
-    { date: "2026-03-01", amount: 1500, status: "paid" },
-    { date: "2026-02-01", amount: 1500, status: "paid" }
-  ];
+  // 🔄 FETCH DATA
+  useEffect(() => {
+    fetch(`http://localhost:8000/api/payments/${id}`)
+      .then(res => res.json())
+      .then(data => {
+        setPayment(data);
 
-  // 🔄 changer statut
-  const toggleStatus = () => {
-    setPayment({
-      ...payment,
-      status: payment.status === "paid" ? "unpaid" : "paid"
+        // 🔥 historique du même student
+        fetch(`http://localhost:8000/api/students/${data.student_id}/payments`)
+          .then(res => res.json())
+          .then(hist => {
+            setHistory(hist);
+            setLoading(false);
+          });
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [id]);
+
+  // 🔄 TOGGLE STATUS
+  const toggleStatus = async () => {
+    const res = await fetch(`http://localhost:8000/api/payments/${id}/toggle`, {
+      method: "PATCH"
     });
+
+    const updated = await res.json();
+    setPayment(updated);
   };
+
+  if (loading || !payment) {
+    return (
+      <DashboardLayout>
+        <div className="loading">Chargement...</div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -36,24 +57,20 @@ export default function PaymentDetails() {
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h2>Détail paiement</h2>
 
-          <button
-            onClick={() => navigate(-1)}
-            className="btn btn-secondary"
-          >
+          <button onClick={() => navigate(-1)} className="btn btn-secondary">
             Retour
           </button>
         </div>
 
         <div className="row">
 
-          {/* 💰 Infos paiement */}
+          {/* 💰 Infos */}
           <div className="col-md-5">
             <div className="card shadow p-4 mb-3">
 
               <h5 className="mb-3">Informations</h5>
 
-              <p><strong>Élève :</strong> {payment.student}</p>
-              <p><strong>Parent :</strong> {payment.parent}</p>
+              <p><strong>Élève :</strong> {payment.student?.user?.name}</p>
 
               <p>
                 <strong>Montant :</strong>{" "}
@@ -85,7 +102,7 @@ export default function PaymentDetails() {
                   onClick={toggleStatus}
                   className="btn btn-success me-2"
                 >
-                  ✔ Marquer comme payé
+                  ✔ Changer statut
                 </button>
 
                 <button className="btn btn-outline-primary">
@@ -113,8 +130,8 @@ export default function PaymentDetails() {
                 </thead>
 
                 <tbody>
-                  {history.map((h, i) => (
-                    <tr key={i}>
+                  {history.map((h) => (
+                    <tr key={h.id}>
                       <td>{new Date(h.date).toLocaleDateString()}</td>
 
                       <td>
@@ -122,8 +139,10 @@ export default function PaymentDetails() {
                       </td>
 
                       <td>
-                        <span className="badge bg-success">
-                          Payé
+                        <span className={`badge ${
+                          h.status === "paid" ? "bg-success" : "bg-danger"
+                        }`}>
+                          {h.status === "paid" ? "Payé" : "Non payé"}
                         </span>
                       </td>
                     </tr>

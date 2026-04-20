@@ -6,7 +6,7 @@ import AppRoutes from './components/routes';
 import ProtectedRoute from "./components/ProtectedRoute";
 import { Route } from 'react-router-dom';
 import Dashboard from './components/pages/admin/Dashboard';
-import { AuthProvider } from './components/contextes/AuthProvider';
+import  {AuthProvider}  from './components/contextes/AuthProvider';
 
 function App() {
   return (

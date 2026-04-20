@@ -24,8 +24,21 @@ class Payment extends Model
         'paid_date' => 'date',
     ];
 
+    // 🔥 relation étudiant
     public function student()
     {
-        return $this->belongsTo(User::class, 'student_id');
+        return $this->belongsTo(Student::class);
+    }
+
+    // 🔥 STATUT PAYÉ
+    public function getIsPaidAttribute()
+    {
+        return $this->status === 'paid';
+    }
+
+    // 🔥 RETARD
+    public function getIsLateAttribute()
+    {
+        return $this->status === 'unpaid' && $this->due_date < now();
     }
 }

@@ -13,12 +13,16 @@ class Absence extends Model
         'student_id',
         'date',
         'status',
+        'reason',       // 🔥 AJOUT IMPORTANT
+        'justified'     // 🔥 AJOUT IMPORTANT
     ];
 
     protected $casts = [
         'date' => 'date',
+        'justified' => 'boolean'
     ];
 
+    // 🔥 relation étudiant
     public function student()
     {
         return $this->belongsTo(Student::class);

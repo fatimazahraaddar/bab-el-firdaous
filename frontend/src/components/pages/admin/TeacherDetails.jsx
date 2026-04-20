@@ -1,38 +1,43 @@
 import DashboardLayout from '../../pages/Layouts/DashboardLayout';
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 
 export default function TeacherDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [activeTab, setActiveTab] = useState("info");
+  const [teacher, setTeacher] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  // 🔥 Données simulées
-  const teacher = {
-    id,
-    name: "Mr Ahmed",
-    email: "ahmed@school.com",
-    phone: "0600000000",
-    subject: "Math",
-    photo: "https://via.placeholder.com/100",
-    classes: ["3ème A", "6ème A"]
-  };
+  // 🔄 FETCH TEACHER
+  useEffect(() => {
+    fetch(`http://localhost:8000/api/teachers/${id}`)
+      .then(res => res.json())
+      .then(data => {
+        setTeacher(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [id]);
 
-  const timetable = [
-    { day: "Lundi", class: "3ème A", time: "08:00 - 10:00" },
-    { day: "Mardi", class: "6ème A", time: "10:00 - 12:00" }
-  ];
-
-  const students = [
-    { name: "Ahmed Benali", class: "3ème A" },
-    { name: "Sara Ali", class: "6ème A" }
-  ];
+  // ⏳ LOADING
+  if (loading || !teacher) {
+    return (
+      <DashboardLayout>
+        <div className="text-center mt-5">Chargement...</div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout userRole="admin" userName="Admin User">
       <div className="container-fluid">
 
-        {/* Header */}
+        {/* HEADER */}
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h2>Détail enseignant</h2>
 
@@ -44,31 +49,18 @@ export default function TeacherDetails() {
           </button>
         </div>
 
-        {/* Tabs */}
+        {/* TABS */}
         <ul className="nav nav-tabs mb-3">
-          <li className="nav-item">
-            <button className={`nav-link ${activeTab === "info" && "active"}`} onClick={() => setActiveTab("info")}>
-              Infos
-            </button>
-          </li>
-
-          <li className="nav-item">
-            <button className={`nav-link ${activeTab === "classes" && "active"}`} onClick={() => setActiveTab("classes")}>
-              Classes
-            </button>
-          </li>
-
-          <li className="nav-item">
-            <button className={`nav-link ${activeTab === "timetable" && "active"}`} onClick={() => setActiveTab("timetable")}>
-              Emploi du temps
-            </button>
-          </li>
-
-          <li className="nav-item">
-            <button className={`nav-link ${activeTab === "students" && "active"}`} onClick={() => setActiveTab("students")}>
-              Élèves
-            </button>
-          </li>
+          {["info","classes","timetable","students"].map(tab => (
+            <li key={tab} className="nav-item">
+              <button
+                className={`nav-link ${activeTab === tab ? "active" : ""}`}
+                onClick={() => setActiveTab(tab)}
+              >
+                {tab}
+              </button>
+            </li>
+          ))}
         </ul>
 
         <div className="card shadow p-3">
@@ -77,15 +69,23 @@ export default function TeacherDetails() {
           {activeTab === "info" && (
             <>
               <div className="text-center mb-3">
-                <img src={teacher.photo} className="rounded-circle" width="100" />
+                <img
+                  src={teacher.photo || "https://via.placeholder.com/100"}
+                  className="rounded-circle"
+                  width="100"
+                  alt="teacher"
+                />
               </div>
 
-              <p><strong>Nom :</strong> {teacher.name}</p>
-              <p><strong>Email :</strong> {teacher.email}</p>
+              <p><strong>Nom :</strong> {teacher.user?.name}</p>
+              <p><strong>Email :</strong> {teacher.user?.email}</p>
               <p><strong>Téléphone :</strong> {teacher.phone}</p>
+
               <p>
                 <strong>Matière :</strong>{" "}
-                <span className="badge bg-primary">{teacher.subject}</span>
+                <span className="badge bg-primary">
+                  {teacher.subject?.name}
+                </span>
               </p>
             </>
           )}
@@ -95,11 +95,15 @@ export default function TeacherDetails() {
             <>
               <h5>Classes</h5>
 
-              {teacher.classes.map((c, i) => (
-                <span key={i} className="badge bg-secondary me-2">
-                  {c}
-                </span>
-              ))}
+              {teacher.classes?.length > 0 ? (
+                teacher.classes.map((c) => (
+                  <span key={c.id} className="badge bg-secondary me-2">
+                    {c.name}
+                  </span>
+                ))
+              ) : (
+                <p className="text-muted">Aucune classe</p>
+              )}
             </>
           )}
 
@@ -115,11 +119,11 @@ export default function TeacherDetails() {
               </thead>
 
               <tbody>
-                {timetable.map((t, i) => (
-                  <tr key={i}>
+                {teacher.timetables?.map((t) => (
+                  <tr key={t.id}>
                     <td>{t.day}</td>
-                    <td>{t.class}</td>
-                    <td>{t.time}</td>
+                    <td>{t.class?.name}</td>
+                    <td>{t.start_time} - {t.end_time}</td>
                   </tr>
                 ))}
               </tbody>
@@ -137,10 +141,10 @@ export default function TeacherDetails() {
               </thead>
 
               <tbody>
-                {students.map((s, i) => (
-                  <tr key={i}>
-                    <td>{s.name}</td>
-                    <td>{s.class}</td>
+                {teacher.students?.map((s) => (
+                  <tr key={s.id}>
+                    <td>{s.user?.name}</td>
+                    <td>{s.class?.name}</td>
                   </tr>
                 ))}
               </tbody>

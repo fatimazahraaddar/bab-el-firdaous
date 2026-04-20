@@ -1,5 +1,6 @@
 import DashboardLayout from "../../pages/Layouts/DashboardLayout";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import axios from "axios";
 
 export default function ParentSettings() {
 
@@ -11,6 +12,37 @@ export default function ParentSettings() {
     newPassword: ""
   });
 
+  const [loading, setLoading] = useState(true);
+
+  // 🔥 LOAD SETTINGS FROM API
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const token = localStorage.getItem("token");
+
+        const res = await axios.get("http://localhost:8000/api/settings", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json"
+          }
+        });
+
+        setSettings(prev => ({
+          ...prev,
+          ...res.data
+        }));
+
+      } catch (err) {
+        console.error("Erreur settings:", err.response?.data || err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSettings();
+  }, []);
+
+  // 🔄 HANDLE CHANGE
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
@@ -20,10 +52,86 @@ export default function ParentSettings() {
     });
   };
 
-  const saveSettings = () => {
-    console.log(settings);
-    alert("Paramètres sauvegardés !");
+  // 💾 SAVE SETTINGS
+  const saveSettings = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.post(
+        "http://localhost:8000/api/settings",
+        settings,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json"
+          }
+        }
+      );
+
+      alert("✅ Paramètres sauvegardés !");
+
+    } catch (err) {
+      console.error(err);
+      alert("❌ Erreur lors de la sauvegarde");
+    }
   };
+
+  // 🔐 CHANGE PASSWORD
+  const changePassword = async () => {
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.post(
+        "http://localhost:8000/api/change-password",
+        {
+          currentPassword: settings.currentPassword,
+          newPassword: settings.newPassword
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
+      );
+
+      alert("✅ Mot de passe changé");
+
+    } catch (err) {
+      console.error(err);
+      alert("❌ Mot de passe incorrect");
+    }
+  };
+
+  // 🗑 DELETE ACCOUNT
+  const deleteAccount = async () => {
+    if (!window.confirm("Supprimer votre compte ?")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+
+      await axios.delete("http://localhost:8000/api/delete-account", {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      localStorage.clear();
+      window.location.href = "/";
+
+    } catch (err) {
+      console.error(err);
+      alert("❌ Erreur suppression");
+    }
+  };
+
+  // 🔄 LOADING
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="p-4">Chargement...</div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout userRole="parent" userName="Parent User">
@@ -117,6 +225,10 @@ export default function ParentSettings() {
             </div>
 
           </div>
+
+          <button className="btn btn-warning" onClick={changePassword}>
+            🔐 Changer mot de passe
+          </button>
         </div>
 
         {/* DANGER ZONE */}
@@ -125,7 +237,7 @@ export default function ParentSettings() {
 
           <p>Supprimer votre compte définitivement</p>
 
-          <button className="btn btn-danger">
+          <button className="btn btn-danger" onClick={deleteAccount}>
             Supprimer le compte
           </button>
         </div>

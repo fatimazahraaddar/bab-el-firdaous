@@ -1,21 +1,45 @@
 import DashboardLayout from '../../pages/Layouts/DashboardLayout';
 import { useParams, useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 export default function AnnouncementDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // 🔥 Données simulées
-  const announcement = {
-    id,
-    title: "Fête de l'école",
-    description: "Une grande fête sera organisée avec plusieurs activités pour les élèves.",
-    type: "event",
-    target: "Tous les étudiants",
-    startDate: "2026-04-15",
-    endDate: "2026-04-16",
-    isPinned: true
-  };
+  const [announcement, setAnnouncement] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // 🔄 FETCH DATA
+  useEffect(() => {
+    fetch(`http://localhost:8000/api/announcements/${id}`)
+      .then(res => res.json())
+      .then(data => {
+        setAnnouncement(data);
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [id]);
+
+  // ✅ LOADING
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="loading">Chargement...</div>
+      </DashboardLayout>
+    );
+  }
+
+  // ❌ sécurité si null
+  if (!announcement) {
+    return (
+      <DashboardLayout>
+        <div className="text-center mt-5">Annonce introuvable</div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout userRole="admin" userName="Admin User">
@@ -38,7 +62,7 @@ export default function AnnouncementDetails() {
 
           {/* Titre */}
           <h3 className="mb-3">
-            {announcement.isPinned && <span className="me-2">📌</span>}
+            {announcement.is_pinned && <span className="me-2">📌</span>}
             {announcement.title}
           </h3>
 
@@ -56,14 +80,19 @@ export default function AnnouncementDetails() {
           {/* Dates */}
           <p>
             <strong>Date :</strong>{" "}
-            {new Date(announcement.startDate).toLocaleDateString()} -{" "}
-            {new Date(announcement.endDate).toLocaleDateString()}
+            {announcement.start_date
+              ? new Date(announcement.start_date).toLocaleDateString()
+              : "-"}{" "}
+            -{" "}
+            {announcement.end_date
+              ? new Date(announcement.end_date).toLocaleDateString()
+              : "-"}
           </p>
 
           {/* Description */}
           <div className="mt-3">
             <h5>Description</h5>
-            <p>{announcement.description}</p>
+            <p>{announcement.content}</p>
           </div>
 
         </div>

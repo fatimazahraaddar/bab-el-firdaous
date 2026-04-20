@@ -1,47 +1,51 @@
 import DashboardLayout from '../../pages/Layouts/DashboardLayout';
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export default function Absences() {
   const navigate = useNavigate();
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
   const [search, setSearch] = useState("");
+  const [absences, setAbsences] = useState([]); // 🔥 dynamique
+  const [loading, setLoading] = useState(true);
 
-  const absences = [
-    {
-      id: 1,
-      student: "Ahmed Benali",
-      course: "Math",
-      date: "2026-04-10",
-      status: "Absent"
-    },
-    {
-      id: 2,
-      student: "Sara Ali",
-      course: "Physique",
-      date: "2026-04-09",
-      status: "Présent"
-    },
-    {
-      id: 3,
-      student: "Youssef Karim",
-      course: "Informatique",
-      date: "2026-04-08",
-      status: "Retard"
-    }
-  ];
+  // 🔄 Charger les données depuis API
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+
+    fetch(`${API_BASE}/api/absences`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setAbsences(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [API_BASE]);
 
   // 🔍 Filtrage
-  const filteredAbsences = absences.filter((a) =>
-    a.student.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredAbsences = absences.filter((a) => {
+    const studentName = a.student?.user?.name || "";
+    return studentName.toLowerCase().includes(search.toLowerCase());
+  });
 
   // 🎨 Couleur statut
   const getStatusColor = (status) => {
-    if (status === "Absent") return "bg-danger";
-    if (status === "Présent") return "bg-success";
-    if (status === "Retard") return "bg-warning";
+    if (status === "absent") return "bg-danger";
+    if (status === "present") return "bg-success";
+    if (status === "late") return "bg-warning";
+    return "bg-secondary";
   };
+
+  if (loading) return <p>Chargement...</p>;
 
   return (
     <DashboardLayout userRole="admin" userName="Admin User">
@@ -51,10 +55,10 @@ export default function Absences() {
         <div className="d-flex justify-content-between align-items-center mb-3">
           <h2>Liste des absences</h2>
           <button
-            onClick={() => navigate('/admin/absences/create')}
-            className="btn btn-primary"
+            onClick={() => navigate('/admin/absences/stats')}
+            className="btn btn-outline-primary"
           >
-            + Ajouter
+            Voir statistiques
           </button>
         </div>
 
@@ -75,7 +79,7 @@ export default function Absences() {
         {/* Tableau */}
         <div className="card shadow p-3">
           <table className="table table-hover align-middle">
-            <thead>
+            <thead className="table-dark">
               <tr>
                 <th>Élève</th>
                 <th>Cours</th>
@@ -89,14 +93,12 @@ export default function Absences() {
               {filteredAbsences.length > 0 ? (
                 filteredAbsences.map((absence) => (
                   <tr key={absence.id}>
-                    <td>{absence.student}</td>
-                    <td>{absence.course}</td>
-                    <td>
-                      {new Date(absence.date).toLocaleDateString()}
-                    </td>
+                    <td>{absence.student?.user?.name || "—"}</td>
+                    <td>{absence.reason || "—"}</td>
+                    <td>{new Date(absence.date).toLocaleDateString()}</td>
                     <td>
                       <span className={`badge ${getStatusColor(absence.status)}`}>
-                        {absence.status}
+                        {absence.status || (absence.justified ? "present" : "absent")}
                       </span>
                     </td>
                     <td>
@@ -105,17 +107,6 @@ export default function Absences() {
                         className="btn btn-sm btn-outline-primary me-2"
                       >
                         Voir
-                      </button>
-
-                      <button
-                        onClick={() => navigate(`/admin/absences/edit/${absence.id}`)}
-                        className="btn btn-sm btn-outline-warning me-2"
-                      >
-                        Modifier
-                      </button>
-
-                      <button className="btn btn-sm btn-outline-danger">
-                        Supprimer
                       </button>
                     </td>
                   </tr>

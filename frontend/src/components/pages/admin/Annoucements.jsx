@@ -1,67 +1,100 @@
-import DashboardLayout from '../../pages/Layouts/DashboardLayout';
-import { useState } from "react";
+import DashboardLayout from "../../pages/Layouts/DashboardLayout";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function Announcements() {
   const navigate = useNavigate();
+  const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
-  const [announcements, setAnnouncements] = useState([
-    {
-      id: 1,
-      title: "Fête de l'école",
-      date: "2026-04-15",
-      type: "event",
-      isPinned: true
-    },
-    {
-      id: 2,
-      title: "Vacances",
-      date: "2026-04-20",
-      type: "vacances",
-      isPinned: false
+  const [announcements, setAnnouncements] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    fetch(`${API_BASE}/api/announcements`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        Accept: "application/json",
+      },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        setAnnouncements(Array.isArray(data) ? data : []);
+        setLoading(false);
+      })
+      .catch((err) => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, [API_BASE]);
+
+  const togglePin = async (id) => {
+    try {
+      const token = localStorage.getItem("token");
+      const current = announcements.find((a) => a.id === id);
+      const res = await fetch(`${API_BASE}/api/announcements/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+        body: JSON.stringify({
+          is_pinned: !(current?.is_pinned ?? false),
+        }),
+      });
+
+      if (!res.ok) throw new Error();
+
+      setAnnouncements((prev) =>
+        prev.map((a) => (a.id === id ? { ...a, is_pinned: !a.is_pinned } : a))
+      );
+    } catch (err) {
+      console.error(err);
     }
-  ]);
-
-  // 📌 Toggle pin
-  const togglePin = (id) => {
-    setAnnouncements(
-      announcements.map(a =>
-        a.id === id ? { ...a, isPinned: !a.isPinned } : a
-      )
-    );
   };
 
-  // ❌ Delete
-  const handleDelete = (id) => {
-    if (window.confirm("Supprimer cette annonce ?")) {
-      setAnnouncements(announcements.filter(a => a.id !== id));
+  const handleDelete = async (id) => {
+    if (!window.confirm("Supprimer cette annonce ?")) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      await fetch(`${API_BASE}/api/announcements/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: "application/json",
+        },
+      });
+      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+    } catch (err) {
+      console.error(err);
     }
   };
 
-  // 🔥 Trier (pinned en haut)
   const sorted = [...announcements].sort(
-    (a, b) => b.isPinned - a.isPinned
+    (a, b) => (b.is_pinned ? 1 : 0) - (a.is_pinned ? 1 : 0)
   );
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="loading">Chargement...</div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout userRole="admin" userName="Admin User">
       <div className="container-fluid">
-
-        {/* Header */}
         <div className="d-flex justify-content-between align-items-center mb-4">
           <h2>Annonces</h2>
-
-          <button
-            onClick={() => navigate('/admin/announcements/create')}
-            className="btn btn-primary"
-          >
+          <button onClick={() => navigate("/admin/announcements/create")} className="btn btn-primary">
             + Ajouter
           </button>
         </div>
 
-        {/* Liste */}
         <div className="card shadow p-3">
-
           <table className="table table-hover align-middle">
             <thead>
               <tr>
@@ -76,31 +109,27 @@ export default function Announcements() {
             <tbody>
               {sorted.map((a) => (
                 <tr key={a.id}>
-
                   <td>
-                    {a.isPinned && <span className="me-2">📌</span>}
+                    {a.is_pinned && <span className="me-2">📌</span>}
                     {a.title}
                   </td>
 
-                  <td>{new Date(a.date).toLocaleDateString()}</td>
+                  <td>{a.start_date ? new Date(a.start_date).toLocaleDateString() : "-"}</td>
 
                   <td>
-                    <span className="badge bg-info">
-                      {a.type}
-                    </span>
+                    <span className="badge bg-info">{a.type}</span>
                   </td>
 
                   <td>
                     <button
                       onClick={() => togglePin(a.id)}
-                      className={`btn btn-sm ${a.isPinned ? "btn-warning" : "btn-outline-secondary"}`}
+                      className={`btn btn-sm ${a.is_pinned ? "btn-warning" : "btn-outline-secondary"}`}
                     >
-                      {a.isPinned ? "Désépingler" : "Épingler"}
+                      {a.is_pinned ? "Désépingler" : "Épingler"}
                     </button>
                   </td>
 
                   <td>
-
                     <button
                       onClick={() => navigate(`/admin/announcements/${a.id}`)}
                       className="btn btn-sm btn-outline-primary me-2"
@@ -115,24 +144,17 @@ export default function Announcements() {
                       ✏️
                     </button>
 
-                    <button
-                      onClick={() => handleDelete(a.id)}
-                      className="btn btn-sm btn-outline-danger"
-                    >
+                    <button onClick={() => handleDelete(a.id)} className="btn btn-sm btn-outline-danger">
                       🗑
                     </button>
-
                   </td>
-
                 </tr>
               ))}
             </tbody>
-
           </table>
-
         </div>
-
       </div>
     </DashboardLayout>
   );
 }
+

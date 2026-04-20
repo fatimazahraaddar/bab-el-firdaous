@@ -12,14 +12,24 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('announcements', function (Blueprint $table) {
-            $table->id();
-            $table->string('title');
-            $table->text('content');
-            $table->unsignedBigInteger('author_id'); // admin or teacher
-            $table->enum('target', ['all', 'students', 'teachers', 'parents'])->default('all');
-            $table->timestamps();
+           $table->id();
 
-            $table->foreign('author_id')->references('id')->on('users')->onDelete('cascade');
+           $table->string('title');
+           $table->text('content');
+
+           $table->string('type');   // info / urgent
+           $table->string('target'); // parent / all
+
+           $table->boolean('is_pinned')->default(false);
+
+           $table->dateTime('start_date')->nullable();
+           $table->dateTime('end_date')->nullable();
+
+           $table->foreignId('author_id')->constrained('users')->cascadeOnDelete();
+
+           $table->timestamps();
+            
+           
         });
     }
 

@@ -1,4 +1,4 @@
-import DashboardLayout from '../../pages/Layouts/DashboardLayout';
+import DashboardLayout from "../../pages/Layouts/DashboardLayout";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -10,199 +10,217 @@ export default function AddStudent() {
     email: "",
     password: "",
     level: "",
-    class: "",
-    parent_id: "",
+    class_id: "",
+    parent_name: "",
+    parent_email: "",
+    parent_phone: "",
     phone: "",
     address: "",
     transport: "pieton",
-    bus: ""
+    bus_id: "",
   });
 
+  const [loading, setLoading] = useState(false);
+
+  // 🔄 handle change
   const handleChange = (e) => {
-    setForm({
-      ...form,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleSubmit = (e) => {
+  // 🚀 SUBMIT CORRIGÉ
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.log("New Student:", form);
+    setLoading(true);
 
-    // 🔗 API Laravel plus tard
-    navigate('/admin/students');
+    try {
+      const token = localStorage.getItem("token");
+
+      const res = await fetch("http://localhost:8000/api/students", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(form),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        const errorMsg =
+          data?.errors
+            ? Object.values(data.errors)[0]?.[0]
+            : data?.message;
+
+        alert(errorMsg || "Erreur serveur");
+        setLoading(false);
+        return;
+      }
+
+      // 🔥 SAFE DATA
+      const email = data?.parent_login?.email || "N/A";
+      const password = data?.parent_login?.password || "N/A";
+
+      alert(`Parent créé\n\nEmail: ${email}\nMot de passe: ${password}`);
+
+      // 🔥 RESET FORM
+      setForm({
+        name: "",
+        email: "",
+        password: "",
+        level: "",
+        class_id: "",
+        parent_name: "",
+        parent_email: "",
+        parent_phone: "",
+        phone: "",
+        address: "",
+        transport: "pieton",
+        bus_id: "",
+      });
+
+      navigate("/admin/students");
+
+    } catch (err) {
+      console.error("SUBMIT ERROR:", err);
+      alert("Erreur serveur");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <DashboardLayout userRole="admin" userName="Admin User">
       <div className="container-fluid">
-
         <h2 className="mb-4">Ajouter un élève</h2>
 
         <div className="card shadow p-4">
-
           <form onSubmit={handleSubmit}>
 
-            {/* 👤 Infos élève */}
-            <h5 className="mb-3">Informations élève</h5>
+            <input
+              name="name"
+              className="form-control mb-3"
+              placeholder="Nom élève"
+              onChange={handleChange}
+              value={form.name}
+              required
+            />
 
-            <div className="mb-3">
-              <label>Nom complet</label>
-              <input
-                type="text"
-                name="name"
-                className="form-control"
-                value={form.name}
-                onChange={handleChange}
-                required
-              />
-            </div>
+            <input
+              name="email"
+              className="form-control mb-3"
+              placeholder="Email élève"
+              onChange={handleChange}
+              value={form.email}
+              required
+            />
 
-            <div className="mb-3">
-              <label>Email</label>
-              <input
-                type="email"
-                name="email"
-                className="form-control"
-                value={form.email}
-                onChange={handleChange}
-              />
-            </div>
+            <input
+              type="password"
+              name="password"
+              className="form-control mb-3"
+              placeholder="Mot de passe élève"
+              onChange={handleChange}
+              value={form.password}
+              required
+            />
 
-            <div className="mb-3">
-              <label>Mot de passe</label>
-              <input
-                type="password"
-                name="password"
-                className="form-control"
-                value={form.password}
-                onChange={handleChange}
-                required
-              />
-            </div>
+            {/* Niveau */}
+            <select
+              name="level"
+              className="form-select mb-3"
+              onChange={handleChange}
+              value={form.level}
+              required
+            >
+              <option value="">Niveau</option>
+              <option value="primaire">Primaire</option>
+              <option value="college">Collège</option>
+              <option value="lycee">Lycée</option>
+            </select>
 
-            {/* 🎓 Niveau + Classe */}
-            <div className="row mb-3">
-              <div className="col-md-6">
-                <label>Niveau</label>
-                <select
-                  name="level"
-                  className="form-select"
-                  value={form.level}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Choisir</option>
-                  <option value="maternelle">Maternelle</option>
-                  <option value="primaire">Primaire</option>
-                  <option value="college">Collège</option>
-                  <option value="lycee">Lycée</option>
-                </select>
-              </div>
+            {/* Classe (manuel) */}
+            <select
+              name="class_id"
+              className="form-select mb-3"
+              onChange={handleChange}
+              value={form.class_id}
+              required
+            >
+              <option value="">Classe</option>
 
-              <div className="col-md-6">
-                <label>Classe</label>
-                <select
-                  name="class"
-                  className="form-select"
-                  value={form.class}
-                  onChange={handleChange}
-                  required
-                >
-                  <option value="">Choisir</option>
-                  <option value="6A">6ème A</option>
-                  <option value="3A">3ème A</option>
-                  <option value="1Bac">1ère Bac</option>
-                </select>
-              </div>
-            </div>
+              <option value="1">1ère année primaire</option>
+              <option value="2">2ème année primaire</option>
+              <option value="3">3ème année primaire</option>
+              <option value="4">4ème année primaire</option>
+              <option value="5">5ème année primaire</option>
+              <option value="6">6ème année primaire</option>
 
-            {/* 👨‍👩‍👧 Parent (sélection) */}
-            <div className="mb-3">
-              <label>Parent</label>
-              <select
-                name="parent_id"
-                className="form-select"
-                value={form.parent_id}
-                onChange={handleChange}
-                required
-              >
-                <option value="">Choisir un parent</option>
-                <option value="1">Mohamed Benali</option>
-                <option value="2">Fatima Zahra</option>
-              </select>
-            </div>
+              <option value="7">1ère année collège</option>
+              <option value="8">2ème année collège</option>
+              <option value="9">3ème année collège</option>
 
-            {/* 📞 Téléphone */}
-            <div className="mb-3">
-              <label>Téléphone</label>
-              <input
-                type="text"
-                name="phone"
-                className="form-control"
-                value={form.phone}
-                onChange={handleChange}
-              />
-            </div>
+              <option value="10">Tronc commun</option>
+              <option value="11">1ère année bac</option>
+              <option value="12">2ème année bac</option>
+            </select>
 
-            {/* 🏠 Adresse */}
-            <div className="mb-3">
-              <label>Adresse</label>
-              <textarea
-                name="address"
-                className="form-control"
-                rows="2"
-                value={form.address}
-                onChange={handleChange}
-              />
-            </div>
+            {/* Parent */}
+            <input
+              name="parent_name"
+              className="form-control mb-3"
+              placeholder="Nom du parent"
+              onChange={handleChange}
+              value={form.parent_name}
+              required
+            />
 
-            {/* 🚸 Transport */}
-            <div className="mb-3">
-              <label>Transport</label>
-              <select
-                name="transport"
-                className="form-select"
-                value={form.transport}
-                onChange={handleChange}
-              >
-                <option value="pieton">Piéton</option>
-                <option value="bus">Bus scolaire</option>
-              </select>
-            </div>
+            <input
+              name="parent_email"
+              className="form-control mb-3"
+              placeholder="Email du parent"
+              onChange={handleChange}
+              value={form.parent_email}
+              required
+            />
 
-            {form.transport === "bus" && (
-              <div className="mb-3">
-                <label>Numéro du bus</label>
-                <input
-                  type="text"
-                  name="bus"
-                  className="form-control"
-                  value={form.bus}
-                  onChange={handleChange}
-                />
-              </div>
-            )}
+            <input
+              name="parent_phone"
+              className="form-control mb-3"
+              placeholder="Téléphone parent"
+              onChange={handleChange}
+              value={form.parent_phone}
+              required
+            />
 
-            {/* Boutons */}
-            <div className="d-flex justify-content-end">
-              <button
-                type="button"
-                onClick={() => navigate(-1)}
-                className="btn btn-secondary me-2"
-              >
-                Annuler
-              </button>
+            {/* Élève */}
+            <input
+              name="phone"
+              className="form-control mb-3"
+              placeholder="Téléphone élève"
+              onChange={handleChange}
+              value={form.phone}
+            />
 
-              <button type="submit" className="btn btn-primary">
-                Enregistrer
+            <textarea
+              name="address"
+              className="form-control mb-3"
+              placeholder="Adresse"
+              onChange={handleChange}
+              value={form.address}
+            />
+
+            {/* Bouton */}
+            <div className="text-end">
+              <button className="btn btn-primary" disabled={loading}>
+                {loading ? "Enregistrement..." : "Enregistrer"}
               </button>
             </div>
 
           </form>
-
         </div>
-
       </div>
     </DashboardLayout>
   );

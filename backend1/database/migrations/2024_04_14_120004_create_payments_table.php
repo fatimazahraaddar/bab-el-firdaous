@@ -12,16 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('payments', function (Blueprint $table) {
-            $table->id();
-            $table->unsignedBigInteger('student_id');
-            $table->string('description');
-            $table->decimal('amount', 10, 2);
-            $table->enum('status', ['paid', 'unpaid'])->default('unpaid');
-            $table->date('due_date');
-            $table->date('paid_date')->nullable();
-            $table->timestamps();
+           $table->id();
 
-            $table->foreign('student_id')->references('id')->on('users')->onDelete('cascade');
+           $table->unsignedBigInteger('student_id');
+
+           $table->string('description');
+           $table->decimal('amount', 10, 2);
+
+           $table->enum('status', ['paid', 'unpaid'])->default('unpaid');
+
+           $table->date('due_date');
+           $table->date('paid_date')->nullable();
+
+           $table->timestamps();
         });
     }
 

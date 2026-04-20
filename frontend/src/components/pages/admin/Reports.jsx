@@ -1,14 +1,38 @@
 import DashboardLayout from '../../pages/Layouts/DashboardLayout';
+import { useState, useEffect } from "react";
 
 export default function Reports() {
 
-  const stats = {
-    students: 120,
-    teachers: 15,
-    buses: 5,
-    totalPaid: 30000,
-    totalUnpaid: 10000
-  };
+  const [stats, setStats] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // 🔄 FETCH DATA
+  useEffect(() => {
+    fetch("http://localhost:8000/api/reports/1")
+      .then(res => res.json())
+      .then(data => {
+        setStats({
+          students: data.students,
+          teachers: data.teachers,
+          buses: data.buses,
+          totalPaid: data.summary.totalPaid,
+          totalUnpaid: data.summary.totalUnpaid
+        });
+        setLoading(false);
+      })
+      .catch(err => {
+        console.error(err);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading || !stats) {
+    return (
+      <DashboardLayout>
+        <div className="loading">Chargement des rapports...</div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

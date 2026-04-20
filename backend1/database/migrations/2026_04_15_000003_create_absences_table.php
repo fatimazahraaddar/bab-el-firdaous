@@ -13,12 +13,16 @@ return new class extends Migration
     {
         Schema::create('absences', function (Blueprint $table) {
             $table->id();
-            $table->unsignedBigInteger('student_id');
-            $table->date('date');
-            $table->enum('status', ['present', 'absent'])->default('present');
-            $table->timestamps();
 
-            $table->foreign('student_id')->references('id')->on('students')->onDelete('cascade');
+            $table->foreignId('student_id')->constrained()->cascadeOnDelete();
+
+            $table->date('date');
+            $table->string('status'); // present / absent
+
+            $table->boolean('justified')->default(false); // 🔥 AJOUT
+            $table->text('reason')->nullable();           // 🔥 AJOUT
+
+            $table->timestamps();
         });
     }
 
