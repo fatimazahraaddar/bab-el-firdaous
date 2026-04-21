@@ -11,7 +11,6 @@ export default function ParentPayments() {
     const fetchPayments = async () => {
       try {
         const token = localStorage.getItem("token");
-
         const res = await axios.get("http://localhost:8000/api/payments", {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -19,10 +18,13 @@ export default function ParentPayments() {
           }
         });
 
-        setPayments(res.data);
+        // ✅ استخراج المصفوفة من الـ Pagination أو مباشرة
+        const finalData = res.data.data || (Array.isArray(res.data) ? res.data : []);
+        setPayments(finalData);
 
       } catch (err) {
         console.error("Erreur paiements:", err.response?.data || err);
+        setPayments([]); // تفادي الأخطاء في حالة فشل الطلب
       } finally {
         setLoading(false);
       }
@@ -106,11 +108,10 @@ export default function ParentPayments() {
                     <td>{p.due_date}</td>
 
                     <td>
-                      <span className={`badge ${
-                        p.status === "paid"
+                      <span className={`badge ${p.status === "paid"
                           ? "bg-success"
                           : "bg-danger"
-                      }`}>
+                        }`}>
                         {p.status === "paid" ? "Payé" : "Non payé"}
                       </span>
                     </td>

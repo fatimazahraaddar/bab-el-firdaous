@@ -8,24 +8,23 @@ export default function Assignments() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // داخل useEffect في Assignments.jsx
     const fetchAssignments = async () => {
       try {
         const token = localStorage.getItem("token");
-
-        const res = await axios.get(
-          "http://localhost:8000/api/assignments",
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-              Accept: "application/json"
-            }
+        const res = await axios.get("http://localhost:8000/api/assignments", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json"
           }
-        );
+        });
 
-        setAssignments(res.data);
+        const dataArray = res.data.data || (Array.isArray(res.data) ? res.data : []);
+        setAssignments(dataArray);
 
       } catch (err) {
-        console.error("Erreur devoirs:", err.response?.data || err);
+        console.error("Erreur devoirs:", err);
+        setAssignments([]);
       } finally {
         setLoading(false);
       }
@@ -90,18 +89,17 @@ export default function Assignments() {
                     <td>{a.due_date}</td>
 
                     <td>
-                      <span className={`badge ${
-                        a.status === "done"
+                      <span className={`badge ${a.status === "done"
                           ? "bg-success"
                           : late
-                          ? "bg-danger"
-                          : "bg-warning"
-                      }`}>
+                            ? "bg-danger"
+                            : "bg-warning"
+                        }`}>
                         {a.status === "done"
                           ? "✔ Fait"
                           : late
-                          ? "En retard"
-                          : "En cours"}
+                            ? "En retard"
+                            : "En cours"}
                       </span>
                     </td>
 

@@ -13,21 +13,25 @@ export default function ChildAssignments() {
   };
 
   useEffect(() => {
+    // داخل useEffect في Assignments.jsx
     const fetchAssignments = async () => {
       try {
         const token = localStorage.getItem("token");
-
         const res = await axios.get("http://localhost:8000/api/assignments", {
           headers: {
             Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
+            Accept: "application/json"
+          }
         });
 
-        setAssignments(res.data);
+        // ✅ بما أنك تستعمل paginate(15)، المصفوفة موجودة داخل res.data.data
+        // الـ fallback لـ res.data ضروري في حالة لم يكن هناك Pagination
+        const dataArray = res.data.data || (Array.isArray(res.data) ? res.data : []);
+        setAssignments(dataArray);
 
       } catch (err) {
-        console.error("Erreur devoirs:", err.response?.data || err);
+        console.error("Erreur devoirs:", err);
+        setAssignments([]);
       } finally {
         setLoading(false);
       }
@@ -112,18 +116,17 @@ export default function ChildAssignments() {
                     <td>{a.due_date}</td>
 
                     <td>
-                      <span className={`badge ${
-                        a.status === "done"
+                      <span className={`badge ${a.status === "done"
                           ? "bg-success"
                           : isLate(a.due_date, a.status)
-                          ? "bg-danger"
-                          : "bg-warning"
-                      }`}>
+                            ? "bg-danger"
+                            : "bg-warning"
+                        }`}>
                         {a.status === "done"
                           ? "✔ Fait"
                           : isLate(a.due_date, a.status)
-                          ? "En retard"
-                          : "En cours"}
+                            ? "En retard"
+                            : "En cours"}
                       </span>
                     </td>
 

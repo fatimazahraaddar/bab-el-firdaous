@@ -37,7 +37,7 @@ export default function AddStudent() {
 
         setClasses(Array.isArray(data) ? data : data.data || []);
       } catch (err) {
-        console.error("خطأ في جلب الفصول:", err);
+        console.error(err?.response?.data);
       }
     };
 
