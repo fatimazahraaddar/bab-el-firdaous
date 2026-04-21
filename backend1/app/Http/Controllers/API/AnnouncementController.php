@@ -18,26 +18,32 @@ class AnnouncementController extends Controller
     {
         $user = $request->user();
 
-        // On utilise where() avec une fonction anonyme pour grouper les conditions OR
-        // Cela évite que le OR n'annule d'autres filtres potentiels (comme la date)
-        $query = Announcement::where(function ($q) use ($user) {
-            $q->where('target', 'all');
-            
-            if ($user->role === 'parent') {
-                $q->orWhere('target', 'parents');
-            }
-        });
+        $query = Announcement::query();
 
-        // Optionnel : Ne montrer que les annonces en cours de validité
+        // إذا كان المستخدم ليس أدمن، نطبق عليه الفلتر
+        if ($user->role !== 'admin') {
+            $query->where(function ($q) use ($user) {
+                $q->where('target', 'all');
+                if ($user->role === 'parent') {
+                    $q->orWhere('target', 'parents');
+                }
+                if ($user->role === 'student') {
+                    $q->orWhere('target', 'students');
+                }
+            });
+        }
+        // ملاحظة: إذا كان admin، لن يطبق الفلتر وسيرى كل الإعلانات
+
+        // فلتر التاريخ (تأكد أن هذا لا يخفي الإعلانات التي تريد رؤيتها)
         $query->where(function ($q) {
             $now = now();
             $q->whereNull('end_date')
-              ->orWhere('end_date', '>=', $now);
+                ->orWhere('end_date', '>=', $now);
         });
 
         $announcements = $query->orderByDesc('is_pinned')
-                               ->latest()
-                               ->paginate(10); // Toujours paginer pour la performance
+            ->latest()
+            ->paginate(10);
 
         return response()->json($announcements);
     }
@@ -52,7 +58,7 @@ class AnnouncementController extends Controller
         $validated = $request->validate([
             'title'      => 'required|string|max:255',
             'content'    => 'required|string',
-            'type'       => 'required|string|in:info,warning,urgent', // Typage plus strict
+            'type'       => 'required|string|in:info,warning,urgent,event', // Typage plus strict
             'target'     => 'required|in:all,parents',
             'start_date' => 'nullable|date',
             'end_date'   => 'nullable|date|after_or_equal:start_date',
@@ -109,8 +115,8 @@ class AnnouncementController extends Controller
         DB::transaction(function () use ($validated, $announcement) {
             if (isset($validated['is_pinned']) && $validated['is_pinned']) {
                 Announcement::where('is_pinned', true)
-                            ->where('id', '!=', $announcement->id)
-                            ->update(['is_pinned' => false]);
+                    ->where('id', '!=', $announcement->id)
+                    ->update(['is_pinned' => false]);
             }
             $announcement->update($validated);
         });

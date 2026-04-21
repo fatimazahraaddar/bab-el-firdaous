@@ -24,8 +24,7 @@ class PaymentController extends Controller
             if ($studentId) {
                 $query->where('student_id', $studentId);
             }
-        } 
-        elseif ($user->role === 'parent') {
+        } elseif ($user->role === 'parent') {
             $parent = $user->parentProfile;
             if (!$parent) return response()->json(['data' => []]);
 
@@ -86,7 +85,7 @@ class PaymentController extends Controller
             $parent = $user->parentProfile;
             // Vérification SQL directe
             $isOwnChild = $parent->children()->where('students.id', $payment->student_id)->exists();
-            
+
             if ($isOwnChild) {
                 return response()->json($payment->load('student.user'));
             }
@@ -118,23 +117,16 @@ class PaymentController extends Controller
     /**
      * ✅ TOGGLE STATUS (Pratique pour le Dashboard)
      */
-    public function toggle(Payment $payment): JsonResponse
+    public function toggle($id): JsonResponse
     {
-        $this->authorize('admin-only');
+        $payment = Payment::findOrFail($id); // جلب السجل يدوياً بـ ID
 
-        if ($payment->status === 'paid') {
-            $payment->status = 'unpaid';
-            $payment->paid_date = null;
-        } else {
-            $payment->status = 'paid';
-            $payment->paid_date = $payment->paid_date ?? now()->toDateString();
-        }
-
+        $payment->status = ($payment->status === 'paid') ? 'unpaid' : 'paid';
+        $payment->paid_date = ($payment->status === 'paid') ? now() : null;
         $payment->save();
 
         return response()->json($payment->load('student.user'));
     }
-
     /**
      * ✅ DELETE
      */

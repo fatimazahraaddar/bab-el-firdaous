@@ -74,6 +74,7 @@ export default function EditStudent() {
 
     try {
       const token = localStorage.getItem("token");
+
       const res = await fetch(`${API_BASE}/api/students/${id}`, {
         method: "PUT",
         headers: {
@@ -82,12 +83,26 @@ export default function EditStudent() {
           Accept: "application/json",
         },
         body: JSON.stringify({
-          ...form,
-          bus_id: form.transport === "bus" && form.bus_id ? Number(form.bus_id) : null,
+          level: form.level || null,
+          class_id: form.class_id ? Number(form.class_id) : null,
+          guardian_id: form.guardian_id ? Number(form.guardian_id) : null,
+          phone: form.phone || null,
+          address: form.address || null,
+          transport: form.transport,
+          bus_id:
+            form.transport === "bus" && form.bus_id
+              ? Number(form.bus_id)
+              : null,
         }),
       });
 
-      if (!res.ok) throw new Error();
+      const data = await res.json(); // 🔥 مهم جدا
+
+      if (!res.ok) {
+        console.error("BACKEND ERROR:", data); // 👈 غادي يبان السبب الحقيقي
+        throw new Error("Update failed");
+      }
+
       navigate("/admin/students");
     } catch (err) {
       console.error(err);

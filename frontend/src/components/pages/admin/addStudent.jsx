@@ -1,5 +1,5 @@
 import DashboardLayout from "../../pages/Layouts/DashboardLayout";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 export default function AddStudent() {
@@ -21,6 +21,28 @@ export default function AddStudent() {
   });
 
   const [loading, setLoading] = useState(false);
+  const [classes, setClasses] = useState([]);
+
+  useEffect(() => {
+    const fetchClasses = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch("http://localhost:8000/api/classes", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        });
+        const data = await res.json();
+
+        setClasses(Array.isArray(data) ? data : data.data || []);
+      } catch (err) {
+        console.error("خطأ في جلب الفصول:", err);
+      }
+    };
+
+    fetchClasses();
+  }, []);
 
   // 🔄 handle change
   const handleChange = (e) => {
@@ -28,13 +50,17 @@ export default function AddStudent() {
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  // 🚀 SUBMIT CORRIGÉ
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
 
     try {
       const token = localStorage.getItem("token");
+      const payload = {
+        ...form,
+        class_id: form.class_id ? parseInt(form.class_id) : null,
+        bus_id: form.bus_id ? parseInt(form.bus_id) : null,
+      };
 
       const res = await fetch("http://localhost:8000/api/students", {
         method: "POST",
@@ -43,7 +69,7 @@ export default function AddStudent() {
           Accept: "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(form),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -59,13 +85,11 @@ export default function AddStudent() {
         return;
       }
 
-      // 🔥 SAFE DATA
       const email = data?.parent_login?.email || "N/A";
       const password = data?.parent_login?.password || "N/A";
 
       alert(`Parent créé\n\nEmail: ${email}\nMot de passe: ${password}`);
 
-      // 🔥 RESET FORM
       setForm({
         name: "",
         email: "",
@@ -142,31 +166,23 @@ export default function AddStudent() {
             </select>
 
             {/* Classe (manuel) */}
+            {/* Classe (Dynamique) */}
             <select
               name="class_id"
               className="form-select mb-3"
-              onChange={handleChange}
               value={form.class_id}
+              onChange={handleChange}
               required
             >
               <option value="">Classe</option>
-
-              <option value="1">1ère année primaire</option>
-              <option value="2">2ème année primaire</option>
-              <option value="3">3ème année primaire</option>
-              <option value="4">4ème année primaire</option>
-              <option value="5">5ème année primaire</option>
-              <option value="6">6ème année primaire</option>
-
-              <option value="7">1ère année collège</option>
-              <option value="8">2ème année collège</option>
-              <option value="9">3ème année collège</option>
-
-              <option value="10">Tronc commun</option>
-              <option value="11">1ère année bac</option>
-              <option value="12">2ème année bac</option>
+              {classes
+                .filter((cls) => cls.level === form.level)
+                .map((cls) => (
+                  <option key={cls.id} value={cls.id}>
+                    {cls.name}
+                  </option>
+                ))}
             </select>
-
             {/* Parent */}
             <input
               name="parent_name"

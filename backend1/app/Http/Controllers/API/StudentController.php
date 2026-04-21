@@ -17,9 +17,9 @@ class StudentController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = Auth::user();
-        
+
         // Eager loading pour éviter le problème N+1
-        $query = Student::with(['user', 'guardian', 'schoolClass', 'bus'])
+        $query = Student::with(['user', 'guardian', 'school_classes', 'bus'])
             ->withCount(['absences', 'payments']);
 
         // --- FILTRES ---
@@ -27,7 +27,7 @@ class StudentController extends Controller
             $search = $request->string('search');
             $query->whereHas('user', function ($q) use ($search) {
                 $q->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%");
+                    ->orWhere('email', 'like', "%{$search}%");
             });
         }
 
@@ -132,7 +132,6 @@ class StudentController extends Controller
                 ],
                 'student'      => $data['student']->load(['user', 'guardian', 'schoolClass', 'bus']),
             ], 201);
-
         } catch (\Exception $e) {
             return response()->json(['message' => 'Erreur lors de la création : ' . $e->getMessage()], 500);
         }
@@ -167,16 +166,29 @@ class StudentController extends Controller
         $validated = $request->validate([
             'level'       => 'sometimes|string|max:255',
             'class_id'    => 'sometimes|exists:school_classes,id',
-            'guardian_id' => 'sometimes|exists:guardians,id',
+            'guardian_id' => 'sometimes|exists:parents,id',
             'bus_id'      => 'nullable|exists:buses,id',
             'phone'       => 'nullable|string|max:255',
             'address'     => 'nullable|string',
             'transport'   => 'sometimes|in:pieton,bus',
         ]);
 
+        // 🔥 enforce logic
+        if (($validated['transport'] ?? $student->transport) === 'pieton') {
+            $validated['bus_id'] = null;
+        }
+
+        if (($validated['transport'] ?? $student->transport) === 'bus' && empty($validated['bus_id'])) {
+            return response()->json([
+                'message' => 'Bus is required when transport is bus'
+            ], 422);
+        }
+
         $student->update($validated);
 
-        return response()->json($student->load(['user', 'schoolClass', 'guardian', 'bus']));
+        return response()->json(
+            $student->load(['user', 'schoolClass', 'guardian', 'bus'])
+        );
     }
 
     /**

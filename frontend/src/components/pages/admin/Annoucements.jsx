@@ -19,7 +19,7 @@ export default function Announcements() {
     })
       .then((res) => res.json())
       .then((data) => {
-        setAnnouncements(Array.isArray(data) ? data : []);
+        setAnnouncements(data.data || []);
         setLoading(false);
       })
       .catch((err) => {

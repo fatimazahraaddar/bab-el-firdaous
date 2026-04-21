@@ -183,7 +183,7 @@ export default function Students() {
                     </td>
                     <td>
                       <span className="badge bg-info text-dark">
-                        {student.class || "—"}
+                        {student.school_classes?.name || student.school_class?.name || "—"}
                       </span>
                     </td>
                     <td>{student.guardian?.name || "Non assigné"}</td>

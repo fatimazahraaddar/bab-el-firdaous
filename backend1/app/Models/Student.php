@@ -33,9 +33,9 @@ class Student extends Model
     /**
      * La classe actuelle (SchoolClass)
      */
-    public function schoolClass()
+    public function school_classes()
     {
-        return $this->belongsTo(SchoolClass::class, 'class_id');
+        return $this->belongsTo(SchoolClasse::class, 'class_id');
     }
 
     /**

@@ -11,9 +11,21 @@ export default function AnnouncementDetails() {
 
   // 🔄 FETCH DATA
   useEffect(() => {
-    fetch(`http://localhost:8000/api/announcements/${id}`)
-      .then(res => res.json())
+    const token = localStorage.getItem("token"); // جيب الـ Token
+
+    fetch(`http://localhost:8000/api/announcements/${id}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`, // ضروري جداً
+        "Accept": "application/json",
+      },
+    })
+      .then(res => {
+        if (!res.ok) throw new Error("Erreur lors du chargement");
+        return res.json();
+      })
       .then(data => {
+        // رد البال هنا: يلا كنتي مصيفط ف الـ Controller $announcement نيشان، خدم بـ data
+        // يلا كنتي مغلفها ف data: $announcement، خدم بـ data.data
         setAnnouncement(data);
         setLoading(false);
       })

@@ -38,44 +38,44 @@ Route::get('/classes', [ClassController::class, 'index']);
 |--------------------------------------------------------------------------
 */
 
-// Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(ManualAuth::class)->group(function () {
 
-// 🔐 Gestion du compte
-Route::post('/logout', [AuthController::class, 'logout']);
-Route::get('/user', [AuthController::class, 'user'])->middleware(ManualAuth::class);
-Route::post('/profile/update', [AuthController::class, 'updateProfile']);
-Route::post('/change-password', [AuthController::class, 'changePassword']);
-Route::delete('/delete-account', [AuthController::class, 'deleteAccount']);
+    // 🔐 Gestion du compte
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user', [AuthController::class, 'user']);
+    Route::post('/profile/update', [AuthController::class, 'updateProfile']);
+    Route::post('/change-password', [AuthController::class, 'changePassword']);
+    Route::delete('/delete-account', [AuthController::class, 'deleteAccount']);
 
-// 📊 Dashboard (Données globales pour l'accueil)
-Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(ManualAuth::class);
+    // 📊 Dashboard (Données globales pour l'accueil)
+    Route::get('/dashboard', [DashboardController::class, 'index']);
 
-// 👨‍🎓 Ressources API (Génère automatiquement index, store, show, update, destroy)
-Route::apiResource('students', StudentController::class);
-Route::apiResource('assignments', AssignmentController::class);
-Route::apiResource('absences', AbsenceController::class);
-Route::apiResource('guardians', GuardianController::class);
-Route::apiResource('buses', BusController::class);
-Route::apiResource('announcements', AnnouncementController::class);
-Route::apiResource('timetables', TimetableController::class);
+    // 👨‍🎓 Ressources API (Génère automatiquement index, store, show, update, destroy)
+    Route::apiResource('students', StudentController::class);
+    Route::apiResource('assignments', AssignmentController::class);
+    Route::apiResource('absences', AbsenceController::class);
+    Route::apiResource('guardians', GuardianController::class);
+    Route::apiResource('buses', BusController::class);
+    Route::apiResource('announcements', AnnouncementController::class);
+    Route::apiResource('timetables', TimetableController::class);
 
-// 💰 Gestion des paiements
-Route::apiResource('payments', PaymentController::class);
-Route::patch('/payments/{id}/toggle', [PaymentController::class, 'toggle']);
+    // 💰 Gestion des paiements
+    Route::apiResource('payments', PaymentController::class);
+    Route::patch('/payments/{id}/toggle', [PaymentController::class, 'toggle']);
 
-// 💬 Système de messagerie
-Route::get('/contacts', [MessageController::class, 'contacts']);
-Route::get('/messages/{userId}', [MessageController::class, 'conversation']);
-Route::post('/messages', [MessageController::class, 'store']);
+    // 💬 Système de messagerie
+    Route::get('/contacts', [MessageController::class, 'contacts']);
+    Route::get('/messages/{userId}', [MessageController::class, 'conversation']);
+    Route::post('/messages', [MessageController::class, 'store']);
 
-// 📈 Rapports et PDF
-Route::get('/reports', [ReportController::class, 'show']);
-Route::get('/reports/pdf', [ReportController::class, 'pdf']);
+    // 📈 Rapports et PDF
+    Route::get('/reports', [ReportController::class, 'show']);
+    Route::get('/reports/pdf', [ReportController::class, 'pdf']);
 
-// ⚙️ Paramètres de l'application
-Route::get('/settings', [SettingsController::class, 'index']);
-Route::post('/settings', [SettingsController::class, 'store']);
+    // ⚙️ Paramètres de l'application
+    Route::get('/settings', [SettingsController::class, 'index']);
+    Route::post('/settings', [SettingsController::class, 'store']);
 
-// 📊 Statistiques avancées
-Route::get('/statistics', [StatisticsController::class, 'index']);
-// });
+    // 📊 Statistiques avancées
+    Route::get('/statistics', [StatisticsController::class, 'index']);
+});
