@@ -152,7 +152,7 @@ class StudentController extends Controller
         }
 
         return response()->json(
-            $student->load(['user', 'guardian', 'schoolClass', 'bus', 'absences', 'payments'])
+            $student->load(['user', 'guardian', 'school_classes', 'bus', 'absences', 'payments'])
         );
     }
 
