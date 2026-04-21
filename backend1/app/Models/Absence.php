@@ -12,9 +12,9 @@ class Absence extends Model
     protected $fillable = [
         'student_id',
         'date',
-        'status',
-        'reason',       // 🔥 AJOUT IMPORTANT
-        'justified'     // 🔥 AJOUT IMPORTANT
+        'status', // 'absent', 'late' (en retard)
+        'reason',
+        'justified'
     ];
 
     protected $casts = [
@@ -22,7 +22,20 @@ class Absence extends Model
         'justified' => 'boolean'
     ];
 
-    // 🔥 relation étudiant
+    // --- SCOPES POUR LES STATISTIQUES ---
+    
+    public function scopeJustified($query)
+    {
+        return $query->where('justified', true);
+    }
+
+    public function scopeUnjustified($query)
+    {
+        return $query->where('justified', false);
+    }
+
+    // --- RELATIONS ---
+
     public function student()
     {
         return $this->belongsTo(Student::class);

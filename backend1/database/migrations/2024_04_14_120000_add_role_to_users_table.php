@@ -7,26 +7,28 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration
 {
     /**
-     * Run the migrations.
+     * Création de la table users avec rôles intégrés.
      */
     public function up(): void
     {
-        if (! Schema::hasColumn('users', 'role')) {
-            Schema::table('users', function (Blueprint $table) {
-                $table->enum('role', ['admin', 'parent'])->default('parent');
-            });
-        }
+        Schema::create('users', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->string('email')->unique();
+            
+            // ✅ Correction exacte : On définit les rôles autorisés ici.
+            // Comme les élèves/profs n'ont pas d'accès, on reste sur admin/parent.
+            $table->enum('role', ['admin', 'parent'])->default('parent');
+            
+            $table->timestamp('email_verified_at')->nullable();
+            $table->string('password');
+            $table->rememberToken();
+            $table->timestamps();
+        });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        if (Schema::hasColumn('users', 'role')) {
-            Schema::table('users', function (Blueprint $table) {
-                $table->dropColumn('role');
-            });
-        }
+        Schema::dropIfExists('users');
     }
 };

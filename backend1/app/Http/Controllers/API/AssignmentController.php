@@ -7,66 +7,70 @@ use App\Models\Assignment;
 use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\JsonResponse;
 
 class AssignmentController extends Controller
 {
-    public function index(Request $request)
+    /**
+     * ✅ LISTE (Optimisée pour les relations Parents/Enfants)
+     */
+    public function index(Request $request): JsonResponse
     {
-        $user = Auth::user();
-        $query = Assignment::with('class')->latest('due_date');
+        $user = $request->user();
+        // Eager loading de la classe et tri par date d'échéance la plus proche
+        $query = Assignment::with('class')->orderBy('due_date', 'asc');
 
         if ($user->role === 'admin') {
-            if ($request->filled('student_id')) {
+            $query->when($request->filled('student_id'), function ($q) use ($request) {
                 $student = Student::find($request->integer('student_id'));
-                if ($student) {
-                    $query->where('class_id', $student->class_id);
-                }
-            }
-
-            return response()->json($query->get());
-        }
-
-        if ($user->role === 'parent') {
+                return $student ? $q->where('class_id', $student->class_id) : $q;
+            });
+        } 
+        elseif ($user->role === 'parent') {
             $parent = $user->parentProfile;
-            if (! $parent) {
-                return response()->json([]);
-            }
+            if (!$parent) return response()->json(['data' => []]);
 
-            $children = $parent->children()->get(['id', 'class_id']);
-            $classIds = $children->pluck('class_id')->filter()->unique()->values();
+            // Récupération des IDs de classe des enfants de manière performante
+            $classIds = $parent->children()->pluck('class_id')->unique()->filter();
 
-            $query->whereIn('class_id', $classIds);
+            if ($classIds->isEmpty()) return response()->json(['data' => []]);
 
+            // Filtrage par étudiant spécifique si demandé
             if ($request->filled('student_id')) {
                 $studentId = $request->integer('student_id');
-                $child = $children->firstWhere('id', $studentId);
+                $child = $parent->children()->where('id', $studentId)->first();
 
-                if (! $child) {
+                if (!$child) {
                     return response()->json(['message' => 'Unauthorized'], 403);
                 }
-
                 $query->where('class_id', $child->class_id);
+            } else {
+                $query->whereIn('class_id', $classIds);
             }
-
-            return response()->json($query->get());
+        } else {
+            return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        return response()->json(['message' => 'Unauthorized'], 403);
+        // Optionnel : Filtrer pour ne pas voir les devoirs très anciens
+        // $query->where('due_date', '>=', now()->subMonth());
+
+        return response()->json($query->paginate(15));
     }
 
-    public function store(Request $request)
+    /**
+     * ✅ CREATE
+     */
+    public function store(Request $request): JsonResponse
     {
-        if (Auth::user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('admin-only'); // Idéalement via une Gate
 
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
+            'title'       => 'required|string|max:255',
             'description' => 'nullable|string',
-            'subject' => 'required|string|max:255',
-            'due_date' => 'required|date',
-            'class_id' => 'required|exists:school_classes,id',
-            'status' => 'nullable|in:pending,done',
+            'subject'     => 'required|string|max:255',
+            'due_date'    => 'required|date|after_or_equal:today', // Un devoir n'est pas dans le passé
+            'class_id'    => 'required|exists:school_classes,id',
+            'status'      => 'nullable|in:pending,done',
         ]);
 
         $assignment = Assignment::create($validated);
@@ -74,7 +78,10 @@ class AssignmentController extends Controller
         return response()->json($assignment->load('class'), 201);
     }
 
-    public function show(Assignment $assignment)
+    /**
+     * ✅ SHOW
+     */
+    public function show(Assignment $assignment): JsonResponse
     {
         $user = Auth::user();
 
@@ -84,12 +91,10 @@ class AssignmentController extends Controller
 
         if ($user->role === 'parent') {
             $parent = $user->parentProfile;
-            if (! $parent) {
-                return response()->json(['message' => 'Unauthorized'], 403);
-            }
+            // Vérification directe en base de données plutôt qu'en mémoire
+            $hasChildInClass = $parent->children()->where('class_id', $assignment->class_id)->exists();
 
-            $classIds = $parent->children()->pluck('class_id');
-            if ($classIds->contains($assignment->class_id)) {
+            if ($hasChildInClass) {
                 return response()->json($assignment->load('class'));
             }
         }
@@ -97,19 +102,20 @@ class AssignmentController extends Controller
         return response()->json(['message' => 'Unauthorized'], 403);
     }
 
-    public function update(Request $request, Assignment $assignment)
+    /**
+     * ✅ UPDATE
+     */
+    public function update(Request $request, Assignment $assignment): JsonResponse
     {
-        if (Auth::user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('admin-only');
 
         $validated = $request->validate([
-            'title' => 'sometimes|string|max:255',
+            'title'       => 'sometimes|string|max:255',
             'description' => 'nullable|string',
-            'subject' => 'sometimes|string|max:255',
-            'due_date' => 'sometimes|date',
-            'class_id' => 'sometimes|exists:school_classes,id',
-            'status' => 'sometimes|in:pending,done',
+            'subject'     => 'sometimes|string|max:255',
+            'due_date'    => 'sometimes|date|after_or_equal:today',
+            'class_id'    => 'sometimes|exists:school_classes,id',
+            'status'      => 'sometimes|in:pending,done',
         ]);
 
         $assignment->update($validated);
@@ -117,15 +123,15 @@ class AssignmentController extends Controller
         return response()->json($assignment->load('class'));
     }
 
-    public function destroy(Assignment $assignment)
+    /**
+     * ✅ DELETE
+     */
+    public function destroy(Assignment $assignment): JsonResponse
     {
-        if (Auth::user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('admin-only');
 
         $assignment->delete();
 
         return response()->json(['message' => 'Assignment deleted']);
     }
 }
-

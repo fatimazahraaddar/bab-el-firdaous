@@ -13,13 +13,32 @@ return new class extends Migration
     {
         Schema::create('assignments', function (Blueprint $table) {
             $table->id();
+            
             $table->string('title');
             $table->text('description')->nullable();
-            $table->string('subject');
+
+            // ✅ Correction : On lie le devoir à une matière réelle de ta table 'subjects'
+            $table->foreignId('subject_id')
+                  ->constrained('subjects')
+                  ->cascadeOnDelete();
+
+            // ✅ Correction : On lie le devoir à une classe spécifique
+            $table->foreignId('class_id')
+                  ->constrained('school_classes')
+                  ->cascadeOnDelete();
+
             $table->date('due_date');
-            $table->unsignedBigInteger('class_id');
-            $table->enum('status', ['pending', 'done'])->default('pending');
+
+            // ✅ Le statut est utile pour l'affichage (ex: En cours / Terminé)
+            $table->enum('status', ['pending', 'completed'])->default('pending');
+
+            // ✅ Optionnel : Ajout d'un champ pour un lien vers un document (PDF de l'exercice)
+            $table->string('file_path')->nullable();
+
             $table->timestamps();
+
+            // Index pour charger rapidement les devoirs d'une classe
+            $table->index(['class_id', 'due_date']);
         });
     }
 
@@ -31,4 +50,3 @@ return new class extends Migration
         Schema::dropIfExists('assignments');
     }
 };
-

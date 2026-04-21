@@ -6,95 +6,122 @@ use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class AnnouncementController extends Controller
 {
-    // ✅ LISTE
-    public function index()
+    /**
+     * ✅ LISTE (Avec Scoping et Pagination)
+     */
+    public function index(Request $request): JsonResponse
     {
-        $user = Auth::user();
+        $user = $request->user();
 
-        $roleMap = [
-            'parent' => 'parents',
-            'admin' => 'all'
-        ];
+        // On utilise where() avec une fonction anonyme pour grouper les conditions OR
+        // Cela évite que le OR n'annule d'autres filtres potentiels (comme la date)
+        $query = Announcement::where(function ($q) use ($user) {
+            $q->where('target', 'all');
+            
+            if ($user->role === 'parent') {
+                $q->orWhere('target', 'parents');
+            }
+        });
 
-        $target = $roleMap[$user->role] ?? 'all';
+        // Optionnel : Ne montrer que les annonces en cours de validité
+        $query->where(function ($q) {
+            $now = now();
+            $q->whereNull('end_date')
+              ->orWhere('end_date', '>=', $now);
+        });
 
-        return response()->json(
-            Announcement::where('target', 'all')
-                ->orWhere('target', $target)
-                ->orderByDesc('is_pinned') // 🔥 pinned en haut
-                ->latest()
-                ->get()
-        );
+        $announcements = $query->orderByDesc('is_pinned')
+                               ->latest()
+                               ->paginate(10); // Toujours paginer pour la performance
+
+        return response()->json($announcements);
     }
 
-    // ✅ CREATE (ADMIN ONLY)
-    public function store(Request $request)
+    /**
+     * ✅ CREATE (Avec transaction pour le "Pinned")
+     */
+    public function store(Request $request): JsonResponse
     {
-        if (Auth::user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('admin-only'); // Utilisation d'une Gate ou Policy
 
         $validated = $request->validate([
-            'title' => 'required|string|max:255',
-            'content' => 'required|string',
-            'type' => 'required|string',
-            'target' => 'required|in:all,parents',
+            'title'      => 'required|string|max:255',
+            'content'    => 'required|string',
+            'type'       => 'required|string|in:info,warning,urgent', // Typage plus strict
+            'target'     => 'required|in:all,parents',
             'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'is_pinned' => 'boolean'
+            'end_date'   => 'nullable|date|after_or_equal:start_date',
+            'is_pinned'  => 'boolean'
         ]);
 
-        // 🔥 un seul pinned
-        if (!empty($validated['is_pinned'])) {
-            Announcement::where('is_pinned', true)->update(['is_pinned' => false]);
-        }
+        // Utilisation d'une transaction pour garantir l'intégrité si le "pin" change
+        $announcement = DB::transaction(function () use ($validated) {
+            if (!empty($validated['is_pinned'])) {
+                Announcement::where('is_pinned', true)->update(['is_pinned' => false]);
+            }
 
-        $announcement = Announcement::create([
-            ...$validated,
-            'author_id' => Auth::id(),
-        ]);
+            return Announcement::create([
+                ...$validated,
+                'author_id' => Auth::id(),
+            ]);
+        });
 
         return response()->json($announcement, 201);
     }
 
-    // ✅ SHOW
-    public function show(Announcement $announcement)
+    /**
+     * ✅ SHOW
+     */
+    public function show(Announcement $announcement): JsonResponse
     {
+        // On vérifie que l'utilisateur a le droit de voir CETTE annonce (target)
+        if ($announcement->target === 'parents' && Auth::user()->role !== 'parent' && Auth::user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
         return response()->json($announcement);
     }
 
-    // ✅ UPDATE
-    public function update(Request $request, Announcement $announcement)
+    /**
+     * ✅ UPDATE
+     */
+    public function update(Request $request, Announcement $announcement): JsonResponse
     {
         if ($announcement->author_id !== Auth::id() && Auth::user()->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
         $validated = $request->validate([
-            'title' => 'sometimes|string|max:255',
-            'content' => 'sometimes|string',
-            'type' => 'sometimes|string',
-            'target' => 'sometimes|in:all,parents',
+            'title'      => 'sometimes|string|max:255',
+            'content'    => 'sometimes|string',
+            'type'       => 'sometimes|string|in:info,warning,urgent',
+            'target'     => 'sometimes|in:all,parents',
             'start_date' => 'nullable|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date',
-            'is_pinned' => 'sometimes|boolean'
+            'end_date'   => 'nullable|date|after_or_equal:start_date',
+            'is_pinned'  => 'sometimes|boolean'
         ]);
 
-        // 🔥 gérer pinned proprement
-        if (isset($validated['is_pinned']) && $validated['is_pinned']) {
-            Announcement::where('is_pinned', true)->update(['is_pinned' => false]);
-        }
-
-        $announcement->update($validated);
+        DB::transaction(function () use ($validated, $announcement) {
+            if (isset($validated['is_pinned']) && $validated['is_pinned']) {
+                Announcement::where('is_pinned', true)
+                            ->where('id', '!=', $announcement->id)
+                            ->update(['is_pinned' => false]);
+            }
+            $announcement->update($validated);
+        });
 
         return response()->json($announcement);
     }
 
-    // ✅ DELETE
-    public function destroy(Announcement $announcement)
+    /**
+     * ✅ DELETE
+     */
+    public function destroy(Announcement $announcement): JsonResponse
     {
         if ($announcement->author_id !== Auth::id() && Auth::user()->role !== 'admin') {
             return response()->json(['message' => 'Unauthorized'], 403);

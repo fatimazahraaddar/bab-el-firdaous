@@ -22,11 +22,12 @@ class SchoolClassSeeder extends Seeder
         ];
 
         foreach ($classes as $class) {
+            // updateOrCreate vérifie si le nom existe déjà.
+            // Si oui, il met à jour le niveau. Si non, il crée la ligne.
             SchoolClass::updateOrCreate(
-                ['name' => $class['name']],
+                ['name' => $class['name']], 
                 ['level' => $class['level']]
             );
         }
     }
 }
-

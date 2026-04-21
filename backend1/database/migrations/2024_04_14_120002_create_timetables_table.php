@@ -11,20 +11,27 @@ return new class extends Migration
         Schema::create('timetables', function (Blueprint $table) {
             $table->id();
 
-            $table->string('day');
+            // ✅ Utiliser un ENUM pour les jours évite les erreurs de frappe (ex: "Lundi" vs "monday")
+            // C'est beaucoup plus facile à gérer côté Frontend pour le filtrage.
+            $table->enum('day', ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']);
 
             $table->time('start_time');
             $table->time('end_time');
 
-            // ✅ relations propres
+            // ✅ Relation avec la classe
             $table->foreignId('class_id')
                   ->constrained('school_classes')
                   ->cascadeOnDelete();
 
+            // ✅ Relation avec la matière (Subject)
             $table->foreignId('subject_id')
-                  ->nullable() // 🔥 important si pas encore subjects
-                  ->constrained()
+                  ->nullable() 
+                  ->constrained('subjects') // Assure-toi que la table 'subjects' existe
                   ->nullOnDelete();
+
+            // ✅ Ajout d'un champ pour le nom du prof (puisqu'ils n'ont pas de compte User)
+            // Cela permet aux parents de voir qui enseigne sans avoir de table complexe.
+            $table->string('teacher_name')->nullable();
 
             $table->string('room')->nullable();
 

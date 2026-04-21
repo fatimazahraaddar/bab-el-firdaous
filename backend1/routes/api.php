@@ -20,73 +20,61 @@ use App\Http\Controllers\API\AssignmentController;
 
 /*
 |--------------------------------------------------------------------------
-| PUBLIC ROUTES
+| ROUTES PUBLIQUES (Accessibles sans connexion)
 |--------------------------------------------------------------------------
 */
 
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
-// ✅ Classes PUBLIC
+// ✅ Consultation des classes (utile pour l'inscription par exemple)
 Route::get('/classes', [ClassController::class, 'index']);
 
 
 /*
 |--------------------------------------------------------------------------
-| PROTECTED ROUTES
+| ROUTES PROTÉGÉES (Nécessitent un Token Sanctum valide)
 |--------------------------------------------------------------------------
 */
 
 Route::middleware('auth:sanctum')->group(function () {
 
-    // 🔐 Auth
+    // 🔐 Gestion du compte
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
     Route::post('/profile/update', [AuthController::class, 'updateProfile']);
     Route::post('/change-password', [AuthController::class, 'changePassword']);
     Route::delete('/delete-account', [AuthController::class, 'deleteAccount']);
 
-    // 📊 Dashboard
+    // 📊 Dashboard (Données globales pour l'accueil)
     Route::get('/dashboard', [DashboardController::class, 'index']);
 
-    // 👨‍🎓 Students
+    // 👨‍🎓 Ressources API (Génère automatiquement index, store, show, update, destroy)
     Route::apiResource('students', StudentController::class);
-
-    // 📚 Assignments
     Route::apiResource('assignments', AssignmentController::class);
-
-    // ⚠️ Absences
     Route::apiResource('absences', AbsenceController::class);
-
-    // 👨‍👩‍👧 Parents
     Route::apiResource('guardians', GuardianController::class);
-
-    // 🚌 Bus
     Route::apiResource('buses', BusController::class);
+    Route::apiResource('announcements', AnnouncementController::class);
+    Route::apiResource('timetables', TimetableController::class);
 
-    // 💰 Payments
+    // 💰 Gestion des paiements
     Route::apiResource('payments', PaymentController::class);
     Route::patch('/payments/{id}/toggle', [PaymentController::class, 'toggle']);
 
-    // 📢 Announcements
-    Route::apiResource('announcements', AnnouncementController::class);
-
-    // 📅 Timetable
-    Route::apiResource('timetables', TimetableController::class);
-
-    // 💬 Messages
+    // 💬 Système de messagerie
     Route::get('/contacts', [MessageController::class, 'contacts']);
     Route::get('/messages/{userId}', [MessageController::class, 'conversation']);
     Route::post('/messages', [MessageController::class, 'store']);
 
-    // 📈 Reports
+    // 📈 Rapports et PDF
     Route::get('/reports', [ReportController::class, 'show']);
     Route::get('/reports/pdf', [ReportController::class, 'pdf']);
 
-    // ⚙️ Settings
+    // ⚙️ Paramètres de l'application
     Route::get('/settings', [SettingsController::class, 'index']);
     Route::post('/settings', [SettingsController::class, 'store']);
 
-    // 📊 Statistics
+    // 📊 Statistiques avancées
     Route::get('/statistics', [StatisticsController::class, 'index']);
 });

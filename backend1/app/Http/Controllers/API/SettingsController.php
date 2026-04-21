@@ -5,77 +5,90 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\JsonResponse;
 
 class SettingsController extends Controller
 {
-    // ✅ GET SETTINGS
-    public function index()
+    /**
+     * ✅ GET SETTINGS
+     */
+    public function index(): JsonResponse
     {
         $user = Auth::user();
 
-        return response()->json([
+        // Valeurs par défaut si la colonne settings est vide
+        $defaultPreferences = [
+            'theme' => 'light',
+            'notifications' => true,
+            'language' => 'fr'
+        ];
 
-            // 🏫 SCHOOL (temporaire → DB plus tard)
+        return response()->json([
+            // 🏫 INFOS ÉCOLE (Statique ou via un modèle SchoolSetting)
             'school' => [
-                'name' => 'École Excellence',
-                'email' => 'contact@ecole.com',
-                'phone' => '0600000000',
+                'name'    => 'École Excellence',
+                'email'   => 'contact@ecole.com',
+                'phone'   => '0600000000',
                 'address' => 'Casablanca'
             ],
 
-            // 👤 USER INFO
+            // 👤 INFOS UTILISATEUR
             'user' => [
-                'name' => $user->name,
+                'id'    => $user->id,
+                'name'  => $user->name,
                 'email' => $user->email,
-                'role' => $user->role
+                'role'  => $user->role
             ],
 
-            // ⚙️ SETTINGS USER (peut venir DB plus tard)
-            'preferences' => [
-                'theme' => 'light',
-                'notifications' => true,
-                'language' => 'fr'
-            ]
+            // ⚙️ PRÉFÉRENCES (Fusion des défauts avec la DB)
+            'preferences' => array_merge($defaultPreferences, $user->settings ?? [])
         ]);
     }
 
-    // ✅ UPDATE SETTINGS
-    public function store(Request $request)
+    /**
+     * ✅ UPDATE SETTINGS
+     */
+    public function store(Request $request): JsonResponse
     {
         $user = Auth::user();
 
         $validated = $request->validate([
-            'name' => 'nullable|string|max:255',
-            'email' => 'nullable|email',
-            'theme' => 'nullable|in:light,dark',
+            'name'          => 'nullable|string|max:255',
+            'email'         => 'nullable|email|unique:users,email,' . $user->id,
+            'theme'         => 'nullable|in:light,dark',
             'notifications' => 'nullable|boolean',
-            'language' => 'nullable|in:fr,en'
+            'language'      => 'nullable|in:fr,en',
+            'password'      => 'nullable|string|min:8|confirmed'
         ]);
 
-        // 🔥 update user (simple version)
-        if (isset($validated['name'])) {
-            $user->name = $validated['name'];
+        // 1. Mise à jour des infos de base
+        if ($request->has('name'))  $user->name = $validated['name'];
+        if ($request->has('email')) $user->email = $validated['email'];
+        
+        if ($request->filled('password')) {
+            $user->password = \Hash::make($validated['password']);
         }
 
-        if (isset($validated['email'])) {
-            $user->email = $validated['email'];
-        }
+        // 2. Mise à jour des préférences JSON
+        $currentSettings = $user->settings ?? [];
+        
+        $newPreferences = [
+            'theme'         => $validated['theme'] ?? ($currentSettings['theme'] ?? 'light'),
+            'notifications' => $request->has('notifications') ? $validated['notifications'] : ($currentSettings['notifications'] ?? true),
+            'language'      => $validated['language'] ?? ($currentSettings['language'] ?? 'fr'),
+        ];
 
+        $user->settings = $newPreferences;
         $user->save();
 
-        // 🔥 settings (temporaire → DB plus tard)
         return response()->json([
             'message' => 'Paramètres sauvegardés avec succès',
             'data' => [
                 'user' => [
-                    'name' => $user->name,
+                    'name'  => $user->name,
                     'email' => $user->email
                 ],
-                'preferences' => [
-                    'theme' => $validated['theme'] ?? 'light',
-                    'notifications' => $validated['notifications'] ?? true,
-                    'language' => $validated['language'] ?? 'fr'
-                ]
+                'preferences' => $user->settings
             ]
         ]);
     }

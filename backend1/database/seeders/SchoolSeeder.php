@@ -6,9 +6,9 @@ use App\Models\Announcement;
 use App\Models\Guardian;
 use App\Models\Payment;
 use App\Models\Student;
-use App\Models\Teacher;
-use App\Models\TimeTable;
+use App\Models\SchoolClass;
 use App\Models\User;
+use App\Models\Timetable;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
@@ -16,25 +16,15 @@ class SchoolSeeder extends Seeder
 {
     public function run(): void
     {
+        // 1. L'ADMINISTRATEUR (Accès total au Dashboard)
         $admin = User::create([
-            'name' => 'Administrator',
+            'name' => 'Direction Scolaire',
             'email' => 'admin@schoolhub.test',
             'password' => Hash::make('password'),
             'role' => 'admin',
         ]);
 
-        $teacherUser = User::create([
-            'name' => 'Marc Dupont',
-            'email' => 'teacher@schoolhub.test',
-            'password' => Hash::make('password'),
-            'role' => 'teacher',
-        ]);
-
-        Teacher::create([
-            'user_id' => $teacherUser->id,
-            'subject' => 'Mathématiques',
-        ]);
-
+        // 2. LE PARENT (Accès à l'interface Parent)
         $parentUser = User::create([
             'name' => 'Sophie Martin',
             'email' => 'parent@schoolhub.test',
@@ -47,44 +37,44 @@ class SchoolSeeder extends Seeder
             'phone' => '+212600000000',
         ]);
 
-        $studentUser = User::create([
-            'name' => 'Lina Martin',
-            'email' => 'student@schoolhub.test',
-            'password' => Hash::make('password'),
-            'role' => 'student',
+        // 3. LA CLASSE
+        $class5A = SchoolClass::where('name', '5A')->first() ?? SchoolClass::create(['name' => '5A', 'level' => 'college']);
+
+        // 4. L'ÉLÈVE (Simple profil, PAS de compte User)
+        // Note : On ne crée pas de User pour Lina, seulement une entrée dans la table students.
+        $student = Student::create([
+            'name' => 'Lina Martin', // Assure-toi d'avoir une colonne 'name' dans ta table students
+            'guardian_id' => $guardian->id,
+            'class_id' => $class5A->id,
+            'level' => 'college',
+            'transport' => 'bus',
         ]);
 
-        Student::create([
-            'user_id' => $studentUser->id,
-            'class' => '5ème A',
-            'parent_id' => $guardian->id,
-            'transport_type' => 'bus',
-            'bus_number' => 'B12',
-        ]);
-
+        // 5. ANNONCE (Visible par le parent)
         Announcement::create([
-            'title' => 'Rentrée scolaire',
-            'content' => 'La rentrée aura lieu le lundi 1er septembre. Pensez à préparer votre matériel.',
+            'title' => 'Réunion Parents-Professeurs',
+            'content' => 'La réunion aura lieu vendredi prochain à 18h.',
             'author_id' => $admin->id,
-            'target' => 'all',
+            'target' => 'parents',
         ]);
 
+        // 6. PAIEMENT (Géré par l'admin, payé par le parent)
         Payment::create([
-            'student_id' => $studentUser->id,
-            'description' => 'Frais de scolarité',
-            'amount' => 1200.00,
+            'student_id' => $student->id,
+            'description' => 'Cantine Octobre',
+            'amount' => 500.00,
             'status' => 'unpaid',
-            'due_date' => now()->addDays(30)->toDateString(),
+            'due_date' => now()->addDays(15),
         ]);
 
-        TimeTable::create([
+        // 7. EMPLOI DU TEMPS (Consultable par le parent)
+        Timetable::create([
             'day' => 'Monday',
-            'start_time' => '08:30:00',
-            'end_time' => '09:30:00',
-            'subject' => 'Mathématiques',
-            'teacher' => 'Marc Dupont',
-            'class' => '5ème A',
-            'room' => 'A1',
+            'start_time' => '08:30',
+            'end_time' => '10:30',
+            'subject_id' => 1, 
+            'class_id' => $class5A->id,
+            'room' => 'Salle B4',
         ]);
     }
 }

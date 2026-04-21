@@ -13,18 +13,45 @@ class Assignment extends Model
         'title',
         'description',
         'due_date',
-        'subject',
+        'subject_id', // Changé en ID pour lier au modèle Subject
         'class_id',
-        'status'
+        'file_path',   // 🔥 Ajout pour stocker l'énoncé (PDF/Image)
+        'status'       // 'active', 'draft', 'archived'
     ];
 
     protected $casts = [
         'due_date' => 'date',
     ];
 
-    // 🔥 relation classe
-    public function class()
+    // --- SCOPES ---
+
+    /**
+     * Récupère les devoirs dont la date limite n'est pas encore passée
+     */
+    public function scopeUpcoming($query)
     {
-        return $this->belongsTo(ClassModel::class, 'class_id');
+        return $query->where('due_date', '>=', now())->orderBy('due_date', 'asc');
+    }
+
+    /**
+     * Récupère les devoirs en retard
+     */
+    public function scopeOverdue($query)
+    {
+        return $query->where('due_date', '<', now());
+    }
+
+    // --- RELATIONS ---
+
+    public function schoolClass()
+    {
+        // Attention : 'class' est un mot réservé en PHP, 
+        // utiliser schoolClass est souvent plus sûr pour éviter les bugs.
+        return $this->belongsTo(SchoolClass::class, 'class_id');
+    }
+
+    public function subject()
+    {
+        return $this->belongsTo(Subject::class);
     }
 }

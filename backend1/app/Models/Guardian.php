@@ -16,24 +16,44 @@ class Guardian extends Model
         'phone',
         'email',
         'job',
-        'user_id' // 🔥 IMPORTANT
+        'address', // 🔥 AJOUT : Souvent nécessaire pour les urgences/bus
+        'user_id' 
     ];
 
-    // 🔥 relation user (compte)
+    // Pour que le compte d'enfants soit inclus dans chaque réponse API
+    protected $appends = ['children_count'];
+
+    // --- ACCESSEURS ---
+
+    public function getChildrenCountAttribute()
+    {
+        return $this->children()->count();
+    }
+
+    // --- RELATIONS ---
+
+    /**
+     * Le compte utilisateur lié (pour le login et les notifications)
+     */
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    // 🔥 relation enfants
+    /**
+     * Les élèves dont ce parent est responsable
+     */
     public function children()
     {
-        return $this->hasMany(Student::class, 'guardian_id'); // ✅ CORRIGÉ
+        // On précise la clé étrangère guardian_id dans la table students
+        return $this->hasMany(Student::class, 'guardian_id');
     }
 
-    // 🔥 nombre d'enfants (dashboard)
-    public function getChildrenCountAttribute()
+    /**
+     * Optionnel : Récupérer les paiements effectués par ce parent
+     */
+    public function payments()
     {
-        return $this->children()->count();
+        return $this->hasMany(Payment::class, 'parent_id');
     }
 }

@@ -4,66 +4,69 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\ProfileUpdateRequest;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
-use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Redirect;
-use Inertia\Inertia;
 
 class ProfileController extends Controller
 {
     /**
-     * Display the user's profile form.
+     * ✅ GET PROFILE DATA
+     * Récupère les infos pour ton formulaire React.
      */
-    public function edit(Request $request)
+    public function edit(Request $request): JsonResponse
     {
-        if (app()->runningUnitTests()) {
-            return response()->json([
-                'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
-                'status' => session('status'),
-            ]);
-        }
-
-        return Inertia::render('Profile/Edit', [
+        return response()->json([
+            'user' => $request->user(),
             'mustVerifyEmail' => $request->user() instanceof MustVerifyEmail,
             'status' => session('status'),
         ]);
     }
 
     /**
-     * Update the user's profile information.
+     * ✅ UPDATE PROFILE
      */
-    public function update(ProfileUpdateRequest $request): RedirectResponse
+    public function update(ProfileUpdateRequest $request): JsonResponse
     {
-        $request->user()->fill($request->validated());
+        $user = $request->user();
+        $user->fill($request->validated());
 
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
+        // Si l'email change, on réinitialise la vérification
+        if ($user->isDirty('email')) {
+            $user->email_verified_at = null;
         }
 
-        $request->user()->save();
+        $user->save();
 
-        return Redirect::route('profile.edit');
+        return response()->json([
+            'message' => 'Profil mis à jour avec succès.',
+            'user' => $user->fresh(), // On renvoie les données fraîches
+        ]);
     }
 
     /**
-     * Delete the user's account.
+     * ✅ DELETE ACCOUNT
      */
-    public function destroy(Request $request): RedirectResponse
+    public function destroy(Request $request): JsonResponse
     {
+        // On exige le mot de passe pour cette action critique
         $request->validate([
             'password' => ['required', 'current_password'],
         ]);
 
         $user = $request->user();
 
-        Auth::logout();
+        // Déconnexion manuelle avant suppression
+        Auth::guard('web')->logout();
 
         $user->delete();
 
+        // Nettoyage de la session
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return Redirect::to('/');
+        return response()->json([
+            'message' => 'Compte supprimé avec succès.'
+        ]);
     }
 }

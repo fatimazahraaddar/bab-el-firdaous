@@ -6,9 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
-use App\Models\Student;
-use App\Models\Guardian;
-use App\Models\Announcement;
 
 class User extends Authenticatable
 {
@@ -18,7 +15,7 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
-        'role',
+        'role', // 'admin', 'parent', 'student'
     ];
 
     protected $hidden = [
@@ -31,19 +28,35 @@ class User extends Authenticatable
         'password' => 'hashed',
     ];
 
-    // 🔥 Parent profile
+    // --- LOGIQUE DE RÔLES ---
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    public function isParent(): bool
+    {
+        return $this->role === 'parent';
+    }
+
+    public function isStudent(): bool
+    {
+        return $this->role === 'student';
+    }
+
+    // --- RELATIONS ---
+
     public function parentProfile()
     {
         return $this->hasOne(Guardian::class, 'user_id');
     }
 
-    // 🔥 Student profile (just relation, pas login)
     public function studentProfile()
     {
         return $this->hasOne(Student::class, 'user_id');
     }
 
-    // 🔥 Announcements (admin)
     public function announcements()
     {
         return $this->hasMany(Announcement::class, 'author_id');

@@ -3,65 +3,63 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
-use App\Models\Payment;
-use App\Models\Student;
-use App\Models\Bus;
+use App\Models\{Payment, Student, Bus, ClassModel};
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\{Auth, DB};
+use Illuminate\Http\JsonResponse;
 
 class StatisticsController extends Controller
 {
-    public function index()
+    public function index(): JsonResponse
     {
         $user = Auth::user();
 
-        // 🔥 BASE QUERY
-        $paymentsQuery = Payment::where('status', 'paid');
+        // 1. REVENU MENSUEL (Une seule requête groupée)
+        $revenueData = Payment::where('status', 'paid')
+            ->select(
+                DB::raw('MONTH(paid_date) as month_num'),
+                DB::raw('SUM(amount) as total')
+            )
+            ->whereYear('paid_date', date('Y')); // Année en cours
 
-        // 🔥 PARENT → filtre enfants
+        // Sécurité Parent
         if ($user->role === 'parent') {
-            $parent = $user->parentProfile;
-
-            if ($parent) {
-                $paymentsQuery->whereIn(
-                    'student_id',
-                    $parent->children()->pluck('id')
-                );
-            }
+            $studentIds = $user->parentProfile->children()->pluck('students.id');
+            $revenueData->whereIn('student_id', $studentIds);
         }
 
-        // 📊 REVENUE PAR MOIS (DYNAMIQUE)
-        $revenue = collect(range(1, 12))->map(function ($month) use ($paymentsQuery) {
+        $revenueResults = $revenueData->groupBy('month_num')
+            ->orderBy('month_num')
+            ->get()
+            ->pluck('total', 'month_num');
+
+        // Formater pour le Frontend (Recharts/Chart.js)
+        $revenue = collect(range(1, 12))->map(function ($month) use ($revenueResults) {
             return [
                 'month' => date('M', mktime(0, 0, 0, $month, 1)),
-                'value' => (clone $paymentsQuery)
-                    ->whereMonth('date', $month)
-                    ->sum('amount')
+                'value' => (float) ($revenueResults[$month] ?? 0)
             ];
         });
 
-        // 👨‍🎓 RÉPARTITION ÉLÈVES PAR CLASSE
-        $students = Student::with('class')
+        // 2. RÉPARTITION ÉLÈVES (Optimisé via SQL group by)
+        $studentsByClass = ClassModel::withCount('students')
             ->get()
-            ->groupBy(fn($s) => $s->class->name ?? 'Sans classe')
-            ->map(fn($group, $name) => [
-                'name' => $name,
-                'value' => $group->count()
-            ])
-            ->values();
+            ->map(fn($class) => [
+                'name'  => $class->name,
+                'value' => $class->students_count
+            ]);
+
+        // 3. RÉSUMÉ GLOBAL
+        $summary = [
+            'students_count' => Student::count(),
+            'buses_count'    => Bus::count(),
+            'total_revenue'  => (float) Payment::where('status', 'paid')->sum('amount'),
+        ];
 
         return response()->json([
-
-            // 📊 GRAPH DATA
-            'revenue' => $revenue,
-            'students' => $students,
-
-            // 📊 SUMMARY
-            'summary' => [
-                'students' => Student::count(),
-                'buses' => Bus::count(),
-                'revenue' => $paymentsQuery->sum('amount')
-            ]
+            'revenue'  => $revenue,
+            'students' => $studentsByClass,
+            'summary'  => $summary
         ]);
     }
 }

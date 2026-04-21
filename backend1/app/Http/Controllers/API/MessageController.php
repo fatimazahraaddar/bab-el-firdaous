@@ -4,113 +4,113 @@ namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
 use App\Models\Message;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\JsonResponse;
 
 class MessageController extends Controller
 {
-    // ✅ CONVERSATION
-    public function conversation($userId)
+    /**
+     * ✅ RÉCUPÉRER UNE CONVERSATION
+     */
+    public function conversation($userId): JsonResponse
     {
         $authUser = Auth::user();
 
-        // 🔐 sécurité
         if ($authUser->id == $userId) {
             return response()->json(['message' => 'Invalid user'], 400);
         }
 
-        // 🔥 vérifier que user existe
-        if (!\App\Models\User::find($userId)) {
-            return response()->json(['message' => 'User not found'], 404);
-        }
+        // On vérifie l'existence et on récupère les infos du destinataire
+        $otherUser = User::findOrFail($userId);
 
+        // Récupération des messages avec une seule requête optimisée
         $messages = Message::where(function ($q) use ($authUser, $userId) {
-                $q->where('sender_id', $authUser->id)
-                  ->where('receiver_id', $userId);
+                $q->where('sender_id', $authUser->id)->where('receiver_id', $userId);
             })
             ->orWhere(function ($q) use ($authUser, $userId) {
-                $q->where('sender_id', $userId)
-                  ->where('receiver_id', $authUser->id);
+                $q->where('sender_id', $userId)->where('receiver_id', $authUser->id);
             })
             ->with(['sender:id,name', 'receiver:id,name'])
-            ->orderBy('created_at')
-            ->get()
-            ->map(function ($m) use ($authUser) {
-                return [
-                    'id' => $m->id,
-                    'text' => $m->text,
-                    'time' => $m->created_at->format('H:i'),
-                    'full_time' => $m->created_at->format('Y-m-d H:i'),
-                    'is_me' => $m->sender_id === $authUser->id,
-                    'sender' => [
-                        'id' => $m->sender->id,
-                        'name' => $m->sender->name
-                    ],
-                    'receiver' => [
-                        'id' => $m->receiver->id,
-                        'name' => $m->receiver->name
-                    ]
-                ];
-            });
+            ->orderBy('created_at', 'asc')
+            ->get();
 
-        return response()->json($messages);
+        // 🔥 MARQUER COMME LUS
+        // On marque comme "lus" tous les messages reçus de cet utilisateur
+        Message::where('sender_id', $userId)
+            ->where('receiver_id', $authUser->id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        return response()->json($messages->map(fn($m) => [
+            'id'        => $m->id,
+            'text'      => $m->text,
+            'time'      => $m->created_at->format('H:i'),
+            'full_time' => $m->created_at->format('d/m/Y H:i'),
+            'is_me'     => $m->sender_id === $authUser->id,
+            'sender'    => $m->sender,
+            'receiver'  => $m->receiver,
+            'is_read'   => $m->read_at !== null
+        ]));
     }
 
-    // ✅ ENVOYER MESSAGE
-    public function store(Request $request)
+    /**
+     * ✅ ENVOYER UN MESSAGE
+     */
+    public function store(Request $request): JsonResponse
     {
         $user = Auth::user();
 
         $validated = $request->validate([
             'receiver_id' => 'required|exists:users,id',
-            'text' => 'required|string|max:1000'
+            'text'        => 'required|string|max:1000'
         ]);
 
-        // 🔐 empêcher message à soi-même
         if ($validated['receiver_id'] == $user->id) {
-            return response()->json(['message' => 'Invalid receiver'], 400);
+            return response()->json(['message' => 'Action invalide'], 400);
         }
 
         $message = Message::create([
-            'sender_id' => $user->id,
+            'sender_id'   => $user->id,
             'receiver_id' => $validated['receiver_id'],
-            'text' => $validated['text']
+            'text'        => $validated['text'],
+            'read_at'     => null
         ]);
 
         return response()->json([
-            'id' => $message->id,
-            'text' => $message->text,
-            'time' => $message->created_at->format('H:i'),
-            'full_time' => $message->created_at->format('Y-m-d H:i'),
-            'is_me' => true,
-            'sender_id' => $user->id,
-            'receiver_id' => $validated['receiver_id']
+            'id'        => $message->id,
+            'text'      => $message->text,
+            'time'      => $message->created_at->format('H:i'),
+            'is_me'     => true,
+            'is_read'   => false
         ], 201);
     }
 
-    // ✅ LISTE CONTACTS (🔥 IMPORTANT POUR FRONTEND)
-    public function contacts()
+    /**
+     * ✅ LISTE DES CONTACTS (Avec dernier message et compteur non-lus)
+     */
+    public function contacts(): JsonResponse
     {
         $user = Auth::user();
 
-        // 🔥 admin voit tous les users
-        if ($user->role === 'admin') {
-            return response()->json(
-                \App\Models\User::select('id', 'name')
-                    ->where('id', '!=', $user->id)
-                    ->get()
-            );
-        }
+        $query = User::select('id', 'name', 'role')->where('id', '!=', $user->id);
 
-        // 🔥 parent → peut contacter admin uniquement
+        // Restriction des contacts selon le rôle
         if ($user->role === 'parent') {
-            return response()->json(
-                \App\Models\User::where('role', 'admin')
-                    ->select('id', 'name')
-                    ->get()
-            );
+            $query->where('role', 'admin');
         }
 
-        return response()->json([]);
+        $contacts = $query->get()->map(function ($contact) use ($user) {
+            // On ajoute le nombre de messages non lus pour ce contact
+            $contact->unread_count = Message::where('sender_id', $contact->id)
+                ->where('receiver_id', $user->id)
+                ->whereNull('read_at')
+                ->count();
+                
+            return $contact;
+        });
+
+        return response()->json($contacts);
     }
 }

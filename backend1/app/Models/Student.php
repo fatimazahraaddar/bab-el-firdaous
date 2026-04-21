@@ -10,33 +10,45 @@ class Student extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id',     // 🔥 IMPORTANT
-        'level',
-        'class',
+        'user_id',
         'guardian_id',
+        'class_id',    // ✅ Changé pour correspondre à la relation BelongsTo
+        'bus_id',
+        'level',       // ex: Primaire, Collège
         'phone',
         'address',
-        'transport',
-        'bus_id'
+        'transport',   // boolean ou string (ex: 'bus', 'private')
     ];
 
-    // 🔗 RELATIONS
+    // --- RELATIONS ---
 
+    /**
+     * Le compte utilisateur (Nom, Email, Photo de profil)
+     */
     public function user()
     {
         return $this->belongsTo(User::class);
     }
 
-    public function class()
+    /**
+     * La classe actuelle (SchoolClass)
+     */
+    public function schoolClass()
     {
-        return $this->belongsTo(ClassModel::class, 'class_id');
+        return $this->belongsTo(SchoolClass::class, 'class_id');
     }
 
+    /**
+     * Le parent/tuteur légal
+     */
     public function guardian()
     {
-        return $this->belongsTo(Guardian::class);
+        return $this->belongsTo(Guardian::class, 'guardian_id');
     }
 
+    /**
+     * Le bus assigné (si applicable)
+     */
     public function bus()
     {
         return $this->belongsTo(Bus::class);
@@ -51,5 +63,4 @@ class Student extends Model
     {
         return $this->hasMany(Payment::class);
     }
-
 }

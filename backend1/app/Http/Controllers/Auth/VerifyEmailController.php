@@ -11,22 +11,24 @@ use Illuminate\Http\RedirectResponse;
 class VerifyEmailController extends Controller
 {
     /**
-     * Mark the authenticated user's email address as verified.
+     * ✅ VALIDATION DE L'EMAIL
      */
     public function __invoke(EmailVerificationRequest $request): RedirectResponse
     {
+        // 1. L'URL vers ton frontend React (ex: http://localhost:3000)
+        $frontendUrl = config('app.frontend_url', 'http://localhost:3000');
+
+        // 2. Si déjà vérifié, on redirige directement vers le dashboard
         if ($request->user()->hasVerifiedEmail()) {
-            return redirect()->intended(
-                config('app.frontend_url').RouteServiceProvider::HOME.'?verified=1'
-            );
+            return redirect()->to($frontendUrl . '/dashboard?verified=1');
         }
 
+        // 3. Sinon, on marque comme vérifié et on déclenche l'événement
         if ($request->user()->markEmailAsVerified()) {
             event(new Verified($request->user()));
         }
 
-        return redirect()->intended(
-            config('app.frontend_url').RouteServiceProvider::HOME.'?verified=1'
-        );
+        // 4. Redirection vers React avec un flag de succès
+        return redirect()->to($frontendUrl . '/dashboard?verified=1');
     }
 }

@@ -1,12 +1,11 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useState, useContext } from "react";
 import { AuthContext } from "../../contextes/AuthProvider";
-import './DashboardLayout.css';
-import logoEcole from '../../../assets/logoEcole.jpg';
+import "./DashboardLayout.css";
+import logoEcole from "../../../assets/logoEcole.jpg";
 import { useNavigate } from "react-router-dom";
 
 export default function DashboardLayout({ children }) {
-
   const { user } = useContext(AuthContext);
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -14,9 +13,9 @@ export default function DashboardLayout({ children }) {
   const navigate = useNavigate();
 
   const handleLogout = async () => {
-  await logout(); // 🔥 supprime token + appel API
-  navigate("/login"); // 🔥 redirection
-};
+    await logout(); // 🔥 supprime token + appel API
+    navigate("/login"); // 🔥 redirection
+  };
 
   // 🔥 récupérer role dynamiquement
   const userRole = user?.role || "admin";
@@ -72,12 +71,13 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className="dashboard-layout">
-
       {/* SIDEBAR */}
-      <aside className={`dashboard-sidebar ${sidebarOpen ? 'open' : 'closed'}`}>
-        
+      <aside className={`dashboard-sidebar ${sidebarOpen ? "open" : "closed"}`}>
+        <button className="close-sidebar" onClick={() => setSidebarOpen(false)}>
+          ✖
+        </button>
         <div className="dashboard-sidebar-brand">
-          <img src={logoEcole} alt="Logo" className="logo_img"/>
+          <img src={logoEcole} alt="Logo" className="logo_img" />
           <div className="dashboard-sidebar-brand-title">
             Groupe Scolaire Bab El Firdaouss
           </div>
@@ -89,7 +89,7 @@ export default function DashboardLayout({ children }) {
               key={item.href}
               to={item.href}
               className={({ isActive }) =>
-                `sidebar-link ${isActive ? 'active' : ''}`
+                `sidebar-link ${isActive ? "active" : ""}`
               }
             >
               <span>{item.icon}</span>
@@ -98,34 +98,37 @@ export default function DashboardLayout({ children }) {
           ))}
         </nav>
 
-  <div className="sidebar-footer">
-  <div className="sidebar-profile">
-   
-    <div className="sidebar-user">
-      <p className="sidebar-user-name">{userName}</p>
-      <p className="sidebar-user-role">{userRole}</p>
-    </div>
-  </div>
+        <div className="sidebar-footer">
+          <div className="sidebar-profile">
+            <div className="sidebar-user">
+              <p className="sidebar-user-name">{userName}</p>
+              <p className="sidebar-user-role">{userRole}</p>
+            </div>
+          </div>
 
-  <button onClick={handleLogout} className="sidebar-logout">
-  Déconnexion
-</button>
-</div>
-
+          <button onClick={handleLogout} className="sidebar-logout">
+            Déconnexion
+          </button>
+        </div>
       </aside>
 
       {/* MAIN */}
       <div className="dashboard-main">
-        <header className="dashboard-header">
-          <button onClick={() => setSidebarOpen(!sidebarOpen)}>☰</button>
-          <h1>
-            {items.find(i => i.href === location.pathname)?.label || "Dashboard"}
+        <header className={`dashboard-header ${sidebarOpen ? "open" : ""}`}>
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="toggle-btn"
+          >
+            {sidebarOpen ? "✖" : "☰"}
+          </button>
+
+          <h1 className="title">
+            {items.find((i) => i.href === location.pathname)?.label ||
+              "Dashboard"}
           </h1>
         </header>
 
-        <div className="dashboard-content">
-          {children}
-        </div>
+        <div className="dashboard-content">{children}</div>
       </div>
     </div>
   );

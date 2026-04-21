@@ -12,19 +12,36 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('payments', function (Blueprint $table) {
-           $table->id();
+            $table->id();
 
-           $table->unsignedBigInteger('student_id');
+            // ✅ Utilisation de foreignId pour une relation propre avec les étudiants
+            // cascadeOnDelete : si l'élève est supprimé, ses factures le sont aussi.
+            $table->foreignId('student_id')
+                  ->constrained('students')
+                  ->cascadeOnDelete();
 
-           $table->string('description');
-           $table->decimal('amount', 10, 2);
+            // ✅ Ajout d'une relation avec le parent (celui qui doit payer)
+            // Cela facilite énormément les requêtes côté "Interface Parent".
+            $table->foreignId('guardian_id')
+                  ->constrained('guardians')
+                  ->cascadeOnDelete();
 
-           $table->enum('status', ['paid', 'unpaid'])->default('unpaid');
+            $table->string('description'); // ex: Frais d'inscription, Cantine Mai...
+            $table->decimal('amount', 10, 2);
 
-           $table->date('due_date');
-           $table->date('paid_date')->nullable();
+            // ✅ Ajout de 'pending' pour les paiements en attente de validation par l'admin
+            $table->enum('status', ['paid', 'unpaid', 'pending', 'late'])->default('unpaid');
 
-           $table->timestamps();
+            $table->date('due_date');      // Date limite
+            $table->date('paid_date')->nullable(); // Date réelle du paiement
+
+            // ✅ Ajout du mode de paiement pour la comptabilité
+            $table->string('payment_method')->nullable(); // virement, espèces, carte
+
+            $table->timestamps();
+
+            // Index pour accélérer la recherche des factures impayées
+            $table->index(['status', 'due_date']);
         });
     }
 

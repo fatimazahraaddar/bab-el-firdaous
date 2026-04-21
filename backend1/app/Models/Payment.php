@@ -11,11 +11,14 @@ class Payment extends Model
 
     protected $fillable = [
         'student_id',
+        'parent_id',    // 🔥 AJOUT : Pour lier directement au payeur
         'description',
         'amount',
-        'status',
+        'category',     // 🔥 AJOUT : 'Tuition', 'Bus', 'Canteen', 'Books'
+        'status',       // 'paid', 'unpaid', 'pending'
         'due_date',
         'paid_date',
+        'reference'     // 🔥 AJOUT : Numéro de facture ou reçu
     ];
 
     protected $casts = [
@@ -24,21 +27,30 @@ class Payment extends Model
         'paid_date' => 'date',
     ];
 
-    // 🔥 relation étudiant
-    public function student()
-    {
-        return $this->belongsTo(Student::class);
-    }
+    // On expose les attributs calculés dans le JSON de l'API
+    protected $appends = ['is_paid', 'is_late'];
 
-    // 🔥 STATUT PAYÉ
+    // --- ACCESSEURS ---
+
     public function getIsPaidAttribute()
     {
         return $this->status === 'paid';
     }
 
-    // 🔥 RETARD
     public function getIsLateAttribute()
     {
-        return $this->status === 'unpaid' && $this->due_date < now();
+        return $this->status === 'unpaid' && $this->due_date->isPast();
+    }
+
+    // --- RELATIONS ---
+
+    public function student()
+    {
+        return $this->belongsTo(Student::class);
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(Guardian::class, 'parent_id');
     }
 }

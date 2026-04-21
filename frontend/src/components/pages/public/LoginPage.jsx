@@ -1,13 +1,13 @@
-import React, { useState, useContext } from "react";
+import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import "./PremiumLoginPage.css";
-import { AuthContext } from "../../contextes/AuthProvider";
+import { useAuth } from "../../contextes/UseAuth"; // Utilisation du hook personnalisé
 import logoEcole from "../../../assets/logoEcole.jpg";
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
+  const { login, api } = useAuth(); // On récupère 'api' depuis le contexte
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -17,52 +17,40 @@ export default function LoginPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isLoading) return;
+    
     setIsLoading(true);
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({ email, password }),
+      // Utilisation de l'instance axios centralisée
+      const res = await api.post("/login", { 
+        email, 
+        password,
+        remember: rememberMe 
       });
 
-      const data = await res.json();
+      const { token, user } = res.data;
 
-      console.log("LOGIN RESPONSE:", data); // 🔥 debug
+      // 1. Mise à jour du contexte (le contexte gère le localStorage en interne)
+      login(token, user);
 
-      if (!res.ok) {
-        throw new Error(data.message || "Email ou mot de passe incorrect");
-      }
-
-      // 🔥 🔥 🔥 CORRECTION PRINCIPALE
-      localStorage.setItem("token", data.token);
-
-      console.log("TOKEN SAVED:", data.token);
-
-      // context
-      login(data.token, data.user);
-
-      const role = data.user.role;
-
-      // redirection selon rôle
-      if (role === "admin") {
+      // 2. Redirection basée sur le rôle
+      if (user.role === "admin") {
         navigate("/admin/dashboard");
-      } else if (role === "parent") {
+      } else if (user.role === "parent") {
         navigate("/parent/dashboard");
       } else {
-        alert("Accès non autorisé");
         navigate("/");
       }
+      
     } catch (error) {
       console.error("LOGIN ERROR:", error);
-      if (error?.message?.includes("Failed to fetch")) {
-        alert("Impossible de joindre l'API. Lance le backend Laravel sur http://127.0.0.1:8000 (php artisan serve).");
-      } else {
-        alert(error.message);
-      }
+      
+      // Gestion des messages d'erreur selon la réponse API
+      const message = error.response?.data?.message 
+        || "Identifiants incorrects ou problème de connexion.";
+      
+      alert(message);
     } finally {
       setIsLoading(false);
     }
@@ -74,7 +62,7 @@ export default function LoginPage() {
         ← Retour au site
       </Link>
 
-      {/* LEFT */}
+      {/* LEFT SECTION */}
       <div className="login-left">
         <div className="login-left-content">
           <div className="left-section d-flex flex-column justify-content-center align-items-center text-center">
@@ -91,15 +79,14 @@ export default function LoginPage() {
 
             <div className="mt-4">
               <p className="subtitle">
-                Accédez à votre espace personnel avec un dashboard puissant et
-                intuitif
+                Accédez à votre espace personnel avec un dashboard puissant et intuitif
               </p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* RIGHT */}
+      {/* RIGHT SECTION */}
       <div className="login-right">
         <div className="login-card">
           <div className="login-header">
@@ -115,6 +102,7 @@ export default function LoginPage() {
                 <input
                   type="email"
                   className="login-input"
+                  placeholder="votre@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -124,19 +112,16 @@ export default function LoginPage() {
 
             <div className="form-group">
               <label>Mot de passe</label>
-
               <div className="input-wrapper">
                 <Lock size={20} className="input-icon" />
-
                 <input
                   type={showPassword ? "text" : "password"}
                   className="login-input"
+                  placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                 />
-
-                {/* 👁️ bouton DANS le wrapper */}
                 <button
                   type="button"
                   className="show-password-btn"
@@ -146,14 +131,16 @@ export default function LoginPage() {
                 </button>
               </div>
 
-              {/* ✅ Checkbox en dessous */}
               <div className="remember-me">
                 <input
                   type="checkbox"
+                  id="remember"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
                 />
-                <span style={{ marginLeft: "8px" }}>Se souvenir de moi</span>
+                <label htmlFor="remember" style={{ marginLeft: "8px", cursor: "pointer" }}>
+                  Se souvenir de moi
+                </label>
               </div>
             </div>
 
@@ -162,7 +149,14 @@ export default function LoginPage() {
               className="login-button"
               disabled={isLoading || !email || !password}
             >
-              {isLoading ? "Connexion..." : "Se connecter"}
+              {isLoading ? (
+                <span className="d-flex align-items-center justify-content-center gap-2">
+                  <span className="spinner-border spinner-border-sm" role="status"></span>
+                  Connexion...
+                </span>
+              ) : (
+                "Se connecter"
+              )}
             </button>
           </form>
         </div>

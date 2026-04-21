@@ -15,7 +15,11 @@ return new class extends Migration
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
-            $table->string('role')->default('parent');
+            
+            // ✅ Correction : Seuls 'admin' et 'parent' sont autorisés.
+            // Le rôle par défaut reste 'parent'.
+            $table->enum('role', ['admin', 'parent'])->default('parent');
+            
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();

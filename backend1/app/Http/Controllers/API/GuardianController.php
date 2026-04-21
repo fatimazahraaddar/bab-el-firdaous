@@ -8,95 +8,114 @@ use App\Models\Guardian;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Http\JsonResponse;
 
 class GuardianController extends Controller
 {
-    // ✅ LISTE DES PARENTS
-    public function index()
+    /**
+     * ✅ LISTE (Avec pagination et eager loading)
+     */
+    public function index(): JsonResponse
     {
-        return response()->json(Guardian::all());
+        // On charge l'utilisateur lié pour avoir accès au nom/email stockés dans 'users'
+        return response()->json(Guardian::with('user')->latest()->paginate(10));
     }
 
-    // ✅ CRÉER UN PARENT
-    public function store(Request $request)
+    /**
+     * ✅ CRÉER UN PARENT (Transactionnel)
+     */
+    public function store(Request $request): JsonResponse
     {
-        if (Auth::user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('admin-only');
 
         $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
-            'password' => 'required|string|min:6',
-            'phone' => 'required|string|max:20',
-            'job' => 'nullable|string|max:255',
+            'name'     => 'required|string|max:255',
+            'email'    => 'required|email|unique:users,email',
+            'password' => 'required|string|min:8',
+            'phone'    => 'required|string|max:20',
+            'job'      => 'nullable|string|max:255',
         ]);
 
-        // 🔐 créer user (login)
-        $user = User::create([
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role' => 'parent'
-        ]);
+        try {
+            $guardian = DB::transaction(function () use ($validated) {
+                // 1. Créer l'accès Login
+                $user = User::create([
+                    'name'     => $validated['name'],
+                    'email'    => $validated['email'],
+                    'password' => Hash::make($validated['password']),
+                    'role'     => 'parent'
+                ]);
 
-        // 👨‍👩‍👧 créer guardian
-        $guardian = Guardian::create([
-            'user_id' => $user->id,
-            'name' => $validated['name'],
-            'email' => $validated['email'],
-            'phone' => $validated['phone'],
-            'job' => $validated['job'] ?? null
-        ]);
+                // 2. Créer le profil Guardian lié
+                return Guardian::create([
+                    'user_id' => $user->id,
+                    'phone'   => $validated['phone'],
+                    'job'     => $validated['job'] ?? null
+                ]);
+            });
 
-        return response()->json([
-            'message' => 'Parent créé avec succès',
-            'guardian' => $guardian
-        ], 201);
+            return response()->json([
+                'message'  => 'Parent créé avec succès',
+                'guardian' => $guardian->load('user')
+            ], 201);
+
+        } catch (\Exception $e) {
+            return response()->json(['message' => 'Erreur lors de la création'], 500);
+        }
     }
 
-    // ✅ AFFICHER UN PARENT
-    public function show($id)
+    /**
+     * ✅ SHOW
+     */
+    public function show(Guardian $guardian): JsonResponse
     {
-        $guardian = Guardian::find($id);
-
-        if (!$guardian) {
-            return response()->json(['message' => 'Parent non trouvé'], 404);
-        }
-
-        return response()->json($guardian);
+        // On charge aussi les enfants pour que l'admin voie qui est lié à qui
+        return response()->json($guardian->load(['user', 'children.user']));
     }
 
-    // ✅ METTRE À JOUR
-    public function update(Request $request, $id)
+    /**
+     * ✅ UPDATE
+     */
+    public function update(Request $request, Guardian $guardian): JsonResponse
     {
-        $guardian = Guardian::find($id);
+        $this->authorize('admin-only');
 
-        if (!$guardian) {
-            return response()->json(['message' => 'Parent non trouvé'], 404);
-        }
+        $validated = $request->validate([
+            'phone' => 'sometimes|string|max:20',
+            'job'   => 'nullable|string|max:255',
+            // Si tu veux aussi permettre de changer le nom/email du User lié :
+            'name'  => 'sometimes|string|max:255',
+        ]);
 
-        $guardian->update($request->all());
+        DB::transaction(function () use ($validated, $guardian) {
+            $guardian->update($validated);
+
+            if (isset($validated['name'])) {
+                $guardian->user->update(['name' => $validated['name']]);
+            }
+        });
 
         return response()->json([
-            'message' => 'Parent mis à jour',
-            'guardian' => $guardian
+            'message'  => 'Profil parent mis à jour',
+            'guardian' => $guardian->load('user')
         ]);
     }
 
-    // ✅ SUPPRIMER
-    public function destroy($id)
+    /**
+     * ✅ DELETE
+     */
+    public function destroy(Guardian $guardian): JsonResponse
     {
-        $guardian = Guardian::find($id);
+        $this->authorize('admin-only');
 
-        if (!$guardian) {
-            return response()->json(['message' => 'Parent non trouvé'], 404);
-        }
+        DB::transaction(function () use ($guardian) {
+            // On supprime l'utilisateur (le Guardian sera supprimé par cascade 
+            // si tu as mis onDele('cascade') dans ta migration, sinon on le fait manuellement)
+            $guardian->user->delete(); 
+            $guardian->delete();
+        });
 
-        $guardian->delete();
-
-        return response()->json([
-            'message' => 'Parent supprimé'
-        ]);
+        return response()->json(['message' => 'Parent et compte utilisateur supprimés']);
     }
 }

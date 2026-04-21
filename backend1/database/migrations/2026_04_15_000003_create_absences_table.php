@@ -14,15 +14,28 @@ return new class extends Migration
         Schema::create('absences', function (Blueprint $table) {
             $table->id();
 
-            $table->foreignId('student_id')->constrained()->cascadeOnDelete();
+            // ✅ Relation avec l'étudiant
+            $table->foreignId('student_id')
+                  ->constrained('students')
+                  ->cascadeOnDelete();
 
             $table->date('date');
-            $table->string('status'); // present / absent
 
-            $table->boolean('justified')->default(false); // 🔥 AJOUT
-            $table->text('reason')->nullable();           // 🔥 AJOUT
+            // ✅ Correction : Utiliser un enum pour le statut
+            // 'late' (retard) est indispensable pour la gestion scolaire !
+            $table->enum('status', ['absent', 'late'])->default('absent');
+
+            // ✅ Justification
+            $table->boolean('is_justified')->default(false); 
+            $table->text('reason')->nullable(); // Ex: Certificat médical, raison familiale...
+
+            // ✅ Optionnel : Heure d'arrivée si c'est un retard
+            $table->time('arrival_time')->nullable();
 
             $table->timestamps();
+
+            // Indexation pour retrouver rapidement les absences d'un élève à une date précise
+            $table->index(['student_id', 'date']);
         });
     }
 

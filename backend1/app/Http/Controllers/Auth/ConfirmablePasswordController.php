@@ -3,40 +3,40 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Providers\RouteServiceProvider;
-use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
-use Inertia\Inertia;
-use Inertia\Response;
+use Illuminate\Http\JsonResponse;
 
 class ConfirmablePasswordController extends Controller
 {
     /**
-     * Show the confirm password view.
+     * ✅ CONFIRMER LE MOT DE PASSE (API)
+     * Cette méthode remplace le store() pour une API.
      */
-    public function show(): Response
+    public function store(Request $request): JsonResponse
     {
-        return Inertia::render('Auth/ConfirmPassword');
-    }
+        // Validation basique du champ
+        $request->validate([
+            'password' => 'required|string',
+        ]);
 
-    /**
-     * Confirm the user's password.
-     */
-    public function store(Request $request): RedirectResponse
-    {
+        // Vérification du mot de passe avec le guard web
         if (! Auth::guard('web')->validate([
             'email' => $request->user()->email,
             'password' => $request->password,
         ])) {
             throw ValidationException::withMessages([
-                'password' => __('auth.password'),
+                'password' => ['Le mot de passe fourni est incorrect.'],
             ]);
         }
 
+        // On stocke la confirmation en session
+        // Cela permet au middleware 'password.confirm' de laisser passer l'utilisateur
         $request->session()->put('auth.password_confirmed_at', time());
 
-        return redirect()->intended(RouteServiceProvider::HOME);
+        return response()->json([
+            'message' => 'Mot de passe confirmé avec succès.'
+        ]);
     }
 }

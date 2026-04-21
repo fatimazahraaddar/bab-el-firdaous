@@ -12,23 +12,41 @@ class Bus extends Model
     protected $fillable = [
         'number',
         'driver_name',
+        'driver_phone', // 🔥 AJOUT : Pour que les parents/admin puissent appeler
         'capacity',
-        'zone'
+        'zone',
+        'status'        // 🔥 AJOUT : 'active', 'maintenance', 'inactive'
     ];
 
     protected $casts = [
         'capacity' => 'integer'
     ];
 
-    // 🔥 relation élèves
-    public function students()
-    {
-        return $this->hasMany(Student::class);
-    }
+    // --- ACCESSEURS (Appended attributes) ---
 
-    // 🔥 nombre d'élèves (utile dashboard)
+    // Pour que ces données soient visibles dans ton JSON API
+    protected $appends = ['students_count', 'available_seats'];
+
+    /**
+     * Nombre d'élèves actuellement inscrits dans ce bus
+     */
     public function getStudentsCountAttribute()
     {
         return $this->students()->count();
+    }
+
+    /**
+     * Calcul des places restantes
+     */
+    public function getAvailableSeatsAttribute()
+    {
+        return $this->capacity - $this->students_count;
+    }
+
+    // --- RELATIONS ---
+
+    public function students()
+    {
+        return $this->hasMany(Student::class);
     }
 }

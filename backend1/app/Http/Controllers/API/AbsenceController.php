@@ -6,67 +6,62 @@ use App\Http\Controllers\Controller;
 use App\Models\Absence;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\JsonResponse;
 
 class AbsenceController extends Controller
 {
-    // ✅ LISTE
-    public function index(Request $request)
+    /**
+     * ✅ LISTE (Optimisée avec Eager Loading et Pagination)
+     */
+    public function index(Request $request): JsonResponse
     {
-        $user = Auth::user();
-        $studentId = $request->integer('student_id');
+        $user = $request->user();
+        // Utilisation du query builder pour éviter de charger trop de données en mémoire
+        $query = Absence::with(['student.user:id,name,email']); 
 
-        // 🔥 ADMIN
         if ($user->role === 'admin') {
-            $query = Absence::with('student.user')->latest();
-            if ($studentId) {
-                $query->where('student_id', $studentId);
+            // Filtrage optionnel par étudiant côté DB
+            $query->when($request->student_id, function ($q, $id) {
+                return $q->where('student_id', $id);
+            });
+        } 
+        elseif ($user->role === 'parent') {
+            // Utilisation d'une relation directe pour éviter les pluck() manuels
+            // On suppose que ParentProfile a une relation 'children'
+            $studentIds = $user->parentProfile->children()->pluck('students.id');
+
+            if ($studentIds->isEmpty()) {
+                return response()->json(['data' => []]);
             }
 
-            return response()->json(
-                $query->get()
-            );
+            $query->whereIn('student_id', $studentIds)
+                  ->when($request->student_id, function ($q, $id) use ($studentIds) {
+                      return $studentIds->contains($id) 
+                          ? $q->where('student_id', $id) 
+                          : $q->whereRaw('1 = 0'); // Force un résultat vide si non autorisé
+                  });
+        } else {
+            return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        // 🔥 PARENT
-        if ($user->role === 'parent') {
-            $parent = $user->parentProfile;
-
-            if (!$parent) {
-                return response()->json([]);
-            }
-
-            $studentIds = $parent->children()->pluck('id');
-            $query = Absence::whereIn('student_id', $studentIds)
-                ->with('student.user')
-                ->latest();
-
-            if ($studentId) {
-                if (! $studentIds->contains($studentId)) {
-                    return response()->json(['message' => 'Unauthorized'], 403);
-                }
-
-                $query->where('student_id', $studentId);
-            }
-
-            return response()->json($query->get());
-        }
-
-        return response()->json(['message' => 'Unauthorized'], 403);
+        // Pagination indispensable en production
+        return response()->json($query->latest()->paginate(15));
     }
 
-    // ✅ CREATE (ADMIN ONLY)
-    public function store(Request $request)
+    /**
+     * ✅ CREATE (Validation stricte)
+     */
+    public function store(Request $request): JsonResponse
     {
-        if (Auth::user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        // En production, utilise une Policy plutôt que des if()
+        $this->authorize('create', Absence::class);
 
         $validated = $request->validate([
             'student_id' => 'required|exists:students,id',
-            'date' => 'required|date',
-            'subject' => 'nullable|string',
-            'justified' => 'boolean',
-            'reason' => 'nullable|string'
+            'date'       => 'required|date|before_or_equal:today',
+            'subject'    => 'nullable|string|max:255',
+            'justified'  => 'boolean',
+            'reason'     => 'nullable|string|max:1000'
         ]);
 
         $absence = Absence::create($validated);
@@ -74,42 +69,29 @@ class AbsenceController extends Controller
         return response()->json($absence, 201);
     }
 
-    // ✅ SHOW
-    public function show(Absence $absence)
+    /**
+     * ✅ SHOW (Route Model Binding + Policy)
+     */
+    public function show(Absence $absence): JsonResponse
     {
-        $user = Auth::user();
+        // Utilise les Policies Laravel pour centraliser la sécurité
+        $this->authorize('view', $absence);
 
-        // 🔥 ADMIN
-        if ($user->role === 'admin') {
-            return response()->json(
-                $absence->load('student.user')
-            );
-        }
-
-        // 🔥 PARENT
-        if ($user->role === 'parent') {
-            $parent = $user->parentProfile;
-
-            if ($parent && $parent->children->contains('id', $absence->student_id)) {
-                return response()->json($absence);
-            }
-        }
-
-        return response()->json(['message' => 'Unauthorized'], 403);
+        return response()->json($absence->load('student.user'));
     }
 
-    // ✅ UPDATE
-    public function update(Request $request, Absence $absence)
+    /**
+     * ✅ UPDATE
+     */
+    public function update(Request $request, Absence $absence): JsonResponse
     {
-        if (Auth::user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('update', $absence);
 
         $validated = $request->validate([
-            'date' => 'nullable|date',
-            'subject' => 'nullable|string',
+            'date'      => 'nullable|date|before_or_equal:today',
+            'subject'   => 'nullable|string|max:255',
             'justified' => 'boolean',
-            'reason' => 'nullable|string'
+            'reason'    => 'nullable|string|max:1000'
         ]);
 
         $absence->update($validated);
@@ -117,12 +99,12 @@ class AbsenceController extends Controller
         return response()->json($absence);
     }
 
-    // ✅ DELETE
-    public function destroy(Absence $absence)
+    /**
+     * ✅ DELETE
+     */
+    public function destroy(Absence $absence): JsonResponse
     {
-        if (Auth::user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('delete', $absence);
 
         $absence->delete();
 

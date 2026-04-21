@@ -6,53 +6,50 @@ use App\Http\Controllers\Controller;
 use App\Models\Bus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\JsonResponse;
 
 class BusController extends Controller
 {
-    // ✅ LISTE
-    public function index()
+    /**
+     * ✅ LISTE (Avec Eager Loading et Pagination)
+     */
+    public function index(Request $request): JsonResponse
     {
-        $user = Auth::user();
+        $user = $request->user();
+        $query = Bus::withCount('students')->latest();
 
-        // 🔥 ADMIN → voit tous les bus
         if ($user->role === 'admin') {
-            return response()->json(
-                Bus::withCount('students')->latest()->get()
-            );
-        }
-
-        // 🔥 PARENT → voit seulement bus de ses enfants
-        if ($user->role === 'parent') {
+            // L'admin voit tout
+        } 
+        elseif ($user->role === 'parent') {
             $parent = $user->parentProfile;
+            if (!$parent) return response()->json(['data' => []]);
 
-            if (!$parent) {
-                return response()->json([]);
-            }
+            $studentIds = $parent->children()->pluck('students.id');
 
-            $studentIds = $parent->children()->pluck('id');
-
-            return response()->json(
-                Bus::whereHas('students', function ($q) use ($studentIds) {
-                    $q->whereIn('id', $studentIds);
-                })->withCount('students')->get()
-            );
+            // On filtre les bus qui transportent au moins un des enfants du parent
+            $query->whereHas('students', function ($q) use ($studentIds) {
+                $q->whereIn('students.id', $studentIds);
+            });
+        } else {
+            return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        return response()->json(['message' => 'Unauthorized'], 403);
+        return response()->json($query->paginate(10));
     }
 
-    // ✅ CREATE (ADMIN ONLY)
-    public function store(Request $request)
+    /**
+     * ✅ CREATE
+     */
+    public function store(Request $request): JsonResponse
     {
-        if (Auth::user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('admin-only'); // Idéalement via une Gate
 
         $validated = $request->validate([
-            'number' => 'required|string|max:50|unique:buses,number',
+            'number'      => 'required|string|max:50|unique:buses,number',
             'driver_name' => 'required|string|max:255',
-            'capacity' => 'required|integer|min:1',
-            'zone' => 'nullable|string|max:255',
+            'capacity'    => 'required|integer|min:1',
+            'zone'        => 'nullable|string|max:255',
         ]);
 
         $bus = Bus::create($validated);
@@ -60,75 +57,73 @@ class BusController extends Controller
         return response()->json($bus, 201);
     }
 
-    // ✅ SHOW
-    public function show(Bus $bus)
+    /**
+     * ✅ SHOW
+     */
+    public function show(Bus $bus): JsonResponse
     {
         $user = Auth::user();
 
-        // 🔥 ADMIN → accès complet
         if ($user->role === 'admin') {
-            return response()->json(
-                $bus->load('students.user')->loadCount('students')
-            );
+            return response()->json($bus->load('students.user')->loadCount('students'));
         }
 
-        // 🔥 PARENT → seulement si son enfant est dans ce bus
         if ($user->role === 'parent') {
             $parent = $user->parentProfile;
+            
+            // Vérification SQL directe (plus performant que charger la collection)
+            $hasChildInBus = $bus->students()
+                ->where('parent_id', $parent->id) // Si la table student a un parent_id
+                ->exists();
 
-            if ($parent && $bus->students->whereIn('id', $parent->children->pluck('id'))->count()) {
-                return response()->json(
-                    $bus->load('students.user')->loadCount('students')
-                );
+            if ($hasChildInBus) {
+                return response()->json($bus->load('students.user')->loadCount('students'));
             }
         }
 
         return response()->json(['message' => 'Unauthorized'], 403);
     }
 
-    // ✅ UPDATE
-    public function update(Request $request, Bus $bus)
+    /**
+     * ✅ UPDATE
+     */
+    public function update(Request $request, Bus $bus): JsonResponse
     {
-        if (Auth::user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('admin-only');
 
         $validated = $request->validate([
-            'number' => 'sometimes|string|max:50|unique:buses,number,' . $bus->id,
+            'number'      => 'sometimes|string|max:50|unique:buses,number,' . $bus->id,
             'driver_name' => 'sometimes|string|max:255',
-            'capacity' => 'sometimes|integer|min:1',
-            'zone' => 'nullable|string|max:255',
+            'capacity'    => 'sometimes|integer|min:1',
+            'zone'        => 'nullable|string|max:255',
         ]);
 
-        // 🔥 vérifier capacité
         if (isset($validated['capacity'])) {
-            $studentsCount = $bus->students()->count();
+            // On utilise loadCount si pas déjà fait ou count() direct
+            $currentTotal = $bus->students()->count();
 
-            if ($validated['capacity'] < $studentsCount) {
+            if ($validated['capacity'] < $currentTotal) {
                 return response()->json([
-                    'message' => 'Capacité inférieure au nombre actuel d’élèves'
+                    'message' => "La capacité ne peut pas être inférieure au nombre d'élèves actuels ($currentTotal)."
                 ], 422);
             }
         }
 
         $bus->update($validated);
 
-        return response()->json(
-            $bus->loadCount('students')
-        );
+        return response()->json($bus->loadCount('students'));
     }
 
-    // ✅ DELETE
-    public function destroy(Bus $bus)
+    /**
+     * ✅ DELETE
+     */
+    public function destroy(Bus $bus): JsonResponse
     {
-        if (Auth::user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('admin-only');
 
+        // Optionnel : vérifier si le bus est vide avant de supprimer ?
         $bus->delete();
 
-        return response()->json([
-            'message' => 'Bus supprimé avec succès'
-        ]);
+        return response()->json(['message' => 'Bus supprimé avec succès']);
     }
 }

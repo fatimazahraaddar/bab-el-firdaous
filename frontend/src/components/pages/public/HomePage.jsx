@@ -4,23 +4,23 @@ import { Award, BookOpen, Bell, ShieldCheck, Sparkles, Users, School, ArrowRight
 
 const features = [
   {
-    title: 'Enseignement innovant',
-    description: 'Programme moderne avec projets pratiques et pédagogie active.',
+    title: 'Enseignement de qualité',
+    description: 'Des programmes modernes adaptés aux besoins des élèves avec une pédagogie active.',
     icon: Sparkles,
   },
   {
-    title: 'Équipe engagée',
-    description: 'Des enseignants experts pour guider chaque élève.',
+    title: 'Encadrement pédagogique',
+    description: 'Une équipe éducative expérimentée accompagnant chaque élève dans sa réussite.',
     icon: Users,
   },
   {
-    title: 'Campus sécurisé',
-    description: 'Espaces lumineux et connectés pensés pour le bien-être.',
+    title: 'Environnement sécurisé',
+    description: 'Un cadre scolaire sûr, sain et favorable au bien-être des élèves.',
     icon: ShieldCheck,
   },
   {
-    title: 'Résultats durables',
-    description: 'Un suivi solide pour des réussites mesurables.',
+    title: 'Suivi et réussite',
+    description: 'Un accompagnement personnalisé pour garantir la progression et la réussite scolaire.',
     icon: Award,
   },
 ];
@@ -59,7 +59,7 @@ export default function HomePage() {
                   Une école moderne pour <span>chaque élève</span>
                 </h1>
                 <p className="hero-text">
-                  SchoolHub combine innovation pédagogique, accompagnement personnalisé et campus connecté pour préparer les élèves au monde de demain.
+                  Bab el firdaouss combine innovation pédagogique, accompagnement personnalisé et campus connecté pour préparer les élèves au monde de demain.
                 </p>
                 <div className="hero-actions">
                   <Link to="/contact" className="public-button">
@@ -94,36 +94,37 @@ export default function HomePage() {
                 <div className="d-flex justify-content-between align-items-center mb-4">
                   <div>
                     <p className="text-primary small mb-1">Campus intelligent</p>
-                    <h2 className="h4 mb-0">Un lieu où tout devient possible</h2>
+                    <h2 className="h4 mb-0">Une gestion scolaire simple et intelligente</h2>
                   </div>
                   <School size={32} className="text-primary" />
                 </div>
                 <p className="text-muted mb-4">
-                  Un environnement scolaire chaleureux, sécurisé et connecté pour libérer le potentiel de chaque élève.
+                 Gérez les élèves, paiements, absences et communications en toute simplicité grâce à notre plateforme moderne.
                 </p>
                 <div className="row g-3">
                   <div className="col-6">
                     <div className="info-card p-4 d-flex justify-content-between align-items-center">
-                      <p className="text-muted mb-0">Espaces</p>
-                      <h5 className="mb-0">Campus moderne</h5>
+                      <p className="text-muted mb-0">Gestion des élèves</p>
+                      <h5 className="mb-0">Suivi complet des informations
+</h5>
                     </div>
                   </div>
                   <div className="col-6">
                     <div className="info-card p-4 d-flex justify-content-between align-items-center">
-                      <p className="text-muted mb-0">Accompagnement</p>
-                      <h5 className="mb-0">Suivi individuel</h5>
+                      <p className="text-muted mb-0">Paiements simplifiés</p>
+                      <h5 className="mb-0">Gestion rapide et sécurisée</h5>
                     </div>
                   </div>
                   <div className="col-6">
                     <div className="info-card p-4 d-flex justify-content-between align-items-center">
-                      <p className="text-muted mb-0">Méthode</p>
-                      <h5 className="mb-0">Projets réels</h5>
+                      <p className="text-muted mb-0">Suivi des absences</p>
+                      <h5 className="mb-0">Contrôle en temps réel</h5>
                     </div>
                   </div>
                   <div className="col-6">
                     <div className="info-card p-4 d-flex justify-content-between align-items-center">
-                      <p className="text-muted mb-0">Sécurité</p>
-                      <h5 className="mb-0">Campus sûr</h5>
+                      <p className="text-muted mb-0">Communication</p>
+                      <h5 className="mb-0">Messagerie entre parents et école</h5>
                     </div>
                   </div>
                 </div>

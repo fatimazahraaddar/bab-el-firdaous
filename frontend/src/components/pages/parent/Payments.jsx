@@ -67,12 +67,12 @@ export default function ParentPayments() {
 
           <div className="premium-card stat-card">
             <h4>Total payé</h4>
-            <p className="big success">{totalPaid} €</p>
+            <p className="big success">{totalPaid} DH</p>
           </div>
 
           <div className="premium-card stat-card">
             <h4>À payer</h4>
-            <p className="big danger">{totalUnpaid} €</p>
+            <p className="big danger">{totalUnpaid} DH</p>
           </div>
 
         </div>

@@ -6,163 +6,143 @@ use App\Http\Controllers\Controller;
 use App\Models\Payment;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Http\JsonResponse;
 
 class PaymentController extends Controller
 {
-    // ✅ LISTE
-    public function index(Request $request)
+    /**
+     * ✅ LISTE (Avec Pagination & Filtrage)
+     */
+    public function index(Request $request): JsonResponse
     {
-        $user = Auth::user();
+        $user = $request->user();
         $studentId = $request->integer('student_id');
 
-        // 🔥 ADMIN → tous les paiements
+        $query = Payment::with('student.user')->latest();
+
         if ($user->role === 'admin') {
-            $query = Payment::with('student.user')->latest();
             if ($studentId) {
                 $query->where('student_id', $studentId);
             }
-
-            return response()->json(
-                $query->get()
-            );
-        }
-
-        // 🔥 PARENT → paiements de ses enfants
-        if ($user->role === 'parent') {
+        } 
+        elseif ($user->role === 'parent') {
             $parent = $user->parentProfile;
+            if (!$parent) return response()->json(['data' => []]);
 
-            if (!$parent) {
-                return response()->json([]);
-            }
-
-            $studentIds = $parent->children()->pluck('id');
-            $query = Payment::whereIn('student_id', $studentIds)
-                ->with('student.user')
-                ->latest();
+            $studentIds = $parent->children()->pluck('students.id');
+            $query->whereIn('student_id', $studentIds);
 
             if ($studentId) {
-                if (! $studentIds->contains($studentId)) {
-                    return response()->json(['message' => 'Unauthorized'], 403);
+                if (!$studentIds->contains($studentId)) {
+                    return response()->json(['message' => 'Accès refusé pour cet élève'], 403);
                 }
-
                 $query->where('student_id', $studentId);
             }
-
-            return response()->json($query->get());
-        }
-
-        return response()->json(['message' => 'Unauthorized'], 403);
-    }
-
-    // ✅ CREATE (ADMIN ONLY)
-    public function store(Request $request)
-    {
-        if (Auth::user()->role !== 'admin') {
+        } else {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        $validated = $request->validate([
-            'student_id' => 'required|exists:students,id',
-            'description' => 'required|string|max:255',
-            'amount' => 'required|numeric|min:0',
-            'due_date' => 'required|date',
-            'paid_date' => 'nullable|date',
-            'status' => 'nullable|in:paid,unpaid',
-        ]);
-
-        $payment = Payment::create([
-            'student_id' => $validated['student_id'],
-            'description' => $validated['description'],
-            'amount' => $validated['amount'],
-            'due_date' => $validated['due_date'],
-            'paid_date' => $validated['paid_date'] ?? null,
-            'status' => $validated['status'] ?? 'unpaid'
-        ]);
-
-        return response()->json(
-            $payment->load('student.user'),
-            201
-        );
+        return response()->json($query->paginate(15));
     }
 
-    // ✅ SHOW
-    public function show(Payment $payment)
+    /**
+     * ✅ CREATE (Admin Only)
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $this->authorize('admin-only');
+
+        $validated = $request->validate([
+            'student_id'  => 'required|exists:students,id',
+            'description' => 'required|string|max:255',
+            'amount'      => 'required|numeric|min:0',
+            'due_date'    => 'required|date',
+            'paid_date'   => 'nullable|date',
+            'status'      => 'nullable|in:paid,unpaid',
+        ]);
+
+        // Logique auto : si on crée en 'paid', on met la date du jour par défaut
+        if (($validated['status'] ?? 'unpaid') === 'paid' && empty($validated['paid_date'])) {
+            $validated['paid_date'] = now()->toDateString();
+        }
+
+        $payment = Payment::create($validated);
+
+        return response()->json($payment->load('student.user'), 201);
+    }
+
+    /**
+     * ✅ SHOW
+     */
+    public function show(Payment $payment): JsonResponse
     {
         $user = Auth::user();
 
-        // 🔥 ADMIN → accès total
         if ($user->role === 'admin') {
-            return response()->json(
-                $payment->load('student.user')
-            );
+            return response()->json($payment->load('student.user'));
         }
 
-        // 🔥 PARENT → seulement ses enfants
         if ($user->role === 'parent') {
             $parent = $user->parentProfile;
-
-            if ($parent && $parent->children->contains('id', $payment->student_id)) {
-                return response()->json(
-                    $payment->load('student.user')
-                );
+            // Vérification SQL directe
+            $isOwnChild = $parent->children()->where('students.id', $payment->student_id)->exists();
+            
+            if ($isOwnChild) {
+                return response()->json($payment->load('student.user'));
             }
         }
 
         return response()->json(['message' => 'Unauthorized'], 403);
     }
 
-    // ✅ UPDATE STATUS (ADMIN ONLY)
-    public function update(Request $request, Payment $payment)
+    /**
+     * ✅ UPDATE
+     */
+    public function update(Request $request, Payment $payment): JsonResponse
     {
-        if (Auth::user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        $this->authorize('admin-only');
 
         $validated = $request->validate([
             'description' => 'sometimes|string|max:255',
-            'amount' => 'sometimes|numeric|min:0',
-            'due_date' => 'sometimes|date',
-            'paid_date' => 'nullable|date',
-            'status' => 'sometimes|in:paid,unpaid',
+            'amount'      => 'sometimes|numeric|min:0',
+            'due_date'    => 'sometimes|date',
+            'paid_date'   => 'nullable|date',
+            'status'      => 'sometimes|in:paid,unpaid',
         ]);
 
         $payment->update($validated);
 
-        return response()->json(
-            $payment->load('student.user')
-        );
+        return response()->json($payment->load('student.user'));
     }
 
-    // ✅ DELETE (ADMIN ONLY)
-    public function destroy(Payment $payment)
+    /**
+     * ✅ TOGGLE STATUS (Pratique pour le Dashboard)
+     */
+    public function toggle(Payment $payment): JsonResponse
     {
-        if (Auth::user()->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        $this->authorize('admin-only');
+
+        if ($payment->status === 'paid') {
+            $payment->status = 'unpaid';
+            $payment->paid_date = null;
+        } else {
+            $payment->status = 'paid';
+            $payment->paid_date = $payment->paid_date ?? now()->toDateString();
         }
 
-        $payment->delete();
-
-        return response()->json([
-            'message' => 'Paiement supprimé'
-        ]);
-    }
-
-    // 🔥 TOGGLE STATUS (ADMIN ONLY)
-    public function toggle($id)
-    {
-        $user = Auth::user();
-
-        if ($user->role !== 'admin') {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
-
-        $payment = Payment::findOrFail($id);
-
-        $payment->status = $payment->status === 'paid' ? 'unpaid' : 'paid';
         $payment->save();
 
-        return response()->json(
-            $payment->load('student.user')
-        );
+        return response()->json($payment->load('student.user'));
+    }
+
+    /**
+     * ✅ DELETE
+     */
+    public function destroy(Payment $payment): JsonResponse
+    {
+        $this->authorize('admin-only');
+        $payment->delete();
+
+        return response()->json(['message' => 'Paiement supprimé']);
     }
 }
