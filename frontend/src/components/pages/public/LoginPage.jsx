@@ -28,6 +28,7 @@ export default function LoginPage() {
         password,
         remember: rememberMe 
       });
+      console.log(res.data);
 
       const { token, user } = res.data;
 

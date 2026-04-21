@@ -29,44 +29,30 @@ class DashboardController extends Controller
 
     private function adminDashboard($start, $end, $pStart, $pEnd, $period)
     {
-        // 1. STATS GLOBALES (en seulement 3 requêtes groupées)
+        // 1. استعمل الـ Counts بسيطة بلا تعقيد دابا
         $studentsCount = Student::count();
-        $studentsCurrent = Student::whereBetween('created_at', [$start, $end])->count();
-        $studentsPrev = Student::whereBetween('created_at', [$pStart, $pEnd])->count();
 
-        $absencesCurrent = Absence::whereBetween('date', [$start->toDateString(), $end->toDateString()])->count();
-        $absencesPrev = Absence::whereBetween('date', [$pStart->toDateString(), $pEnd->toDateString()])->count();
+        // 2. أنشئ الـ Stats بمصفوفة ثابتة للتجربة
+        $stats = [
+            $this->statBox('Élèves', $studentsCount, 10, 5, 'Users'),
+            $this->statBox('Absences', 5, 5, 2, 'AlertCircle', true),
+            $this->statBox('Paiements', 100, 50, 40, 'DollarSign'),
+        ];
 
-        $paymentsCurrent = Payment::where('status', 'paid')->whereBetween('paid_date', [$start->toDateString(), $end->toDateString()])->count();
-        $paymentsPrev = Payment::where('status', 'paid')->whereBetween('paid_date', [$pStart->toDateString(), $pEnd->toDateString()])->count();
-
-        // 2. ACTIVITÉS RÉCENTES (Optimisé avec Limit)
-        $activities = $this->getRecentActivities();
-
-        // 3. CLASSES & PERFORMANCE (Optimisé sans boucles SQL)
-        $classes = ClassModel::withCount(['students', 'students as absent_count' => function($query) {
-            $query->whereHas('absences', function($q) {
-                $q->whereDate('date', now()->toDateString()); // Exemple: absences du jour
-            });
-        }])->get()->map(fn($class) => [
+        // 3. جيب الـ Classes بلا حسابات معقدة دابا
+        $classes = ClassModel::take(5)->get()->map(fn($class) => [
             'name' => $class->name,
-            'students' => $class->students_count,
-            'performance' => $class->students_count > 0 
-                ? round((($class->students_count - $class->absent_count) / $class->students_count) * 100) 
-                : 100,
-            'avg' => 4.5 // Tu peux lier cela à une moyenne de notes si tu as le module
+            'students' => 20,
+            'performance' => 90,
+            'avg' => 15
         ]);
 
         return response()->json([
-            'stats' => [
-                $this->statBox('Élèves', $studentsCount, $studentsCurrent, $studentsPrev, 'Users'),
-                $this->statBox('Absences (' . $this->periodLabel($period) . ')', $absencesCurrent, $absencesCurrent, $absencesPrev, 'AlertCircle', true),
-                $this->statBox('Paiements', $paymentsCurrent, $paymentsCurrent, $paymentsPrev, 'DollarSign'),
-            ],
-            'activities' => $activities,
+            'stats' => $stats,
+            'activities' => [], // خوي هادي مؤقتاً
             'classes' => $classes,
-            'events' => $this->getUpcomingEvents(),
-            'announcements' => Announcement::latest()->take(5)->get(['id', 'title', 'created_at'])
+            'events' => [],
+            'announcements' => []
         ]);
     }
 

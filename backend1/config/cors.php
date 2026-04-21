@@ -15,11 +15,11 @@ return [
     |
     */
 
-    'paths' => ['*','api/*', 'register', 'login', 'logout','sanctum/csrf-cookie'],
+    'paths' => ['*','api/*', 'sanctum/csrf-cookie', 'login', 'logout'], // تأكد بلي login كاينة هنا
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => [env('FRONTEND_URL', 'http://localhost:5173')],
+    'allowed_origins' => ['http://localhost:5173'], // حدد الـ origin ديال React
 
     'allowed_origins_patterns' => [],
 

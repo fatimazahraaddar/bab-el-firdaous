@@ -27,4 +27,16 @@ class Handler extends ExceptionHandler
             //
         });
     }
+
+    public function render($request, Throwable $e)
+    {
+        // إذا كان الطلب يبدأ بـ api/ أو يتوقع JSON
+        if ($request->is('api/*') || $request->expectsJson()) {
+            if ($e instanceof \Illuminate\Auth\AuthenticationException) {
+                return response()->json(['message' => 'Unauthenticated.'], 401);
+            }
+        }
+
+        return parent::render($request, $e);
+    }
 }

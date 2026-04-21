@@ -41,10 +41,11 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
-    \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
-    'throttle:api',
-    \Illuminate\Routing\Middleware\SubstituteBindings::class,
-],
+            // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class, 
+            // 👈 هادا هو اللي كيقلب على الكوكيز، حيدو باش يولي يقلب غير على التوكن
+            \Illuminate\Routing\Middleware\ThrottleRequests::class . ':api',
+            \Illuminate\Routing\Middleware\SubstituteBindings::class,
+        ],
     ];
 
     /**
