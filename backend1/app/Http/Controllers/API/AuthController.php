@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\API;
 
 use App\Http\Controllers\Controller;
+use App\Models\Guardian;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
@@ -52,20 +54,34 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users',
             'password' => 'required|string|min:8',
+            // 'phone' => 'nullable|string', // Zidha ila kanti kat-siftha f l-formulaire
         ]);
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-            'role' => 'parent',
-        ]);
+        // Kandiro Transaction bach ila t-creera user o t-bloca l-guardian, may-wellich 3andna user "m-ytim"
+        return DB::transaction(function () use ($request) {
 
-        return response()->json([
-            'user' => $user
-        ], 201);
+            // 1. Creation dyal l-User Account
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => Hash::make($request->password),
+                'role' => 'parent',
+            ]);
+
+            // 2. Creation dyal l-Profil f table Guardians (HADA HUWA L-FIX)
+            Guardian::create([
+                'user_id' => $user->id,
+                'name'    => $user->name,
+                'email'   => $user->email,
+                'phone'   => $request->phone ?? null,
+            ]);
+
+            return response()->json([
+                'message' => 'Parent registered successfully',
+                'user' => $user->load('parentProfile') // Ila kanti dayr relation
+            ], 201);
+        });
     }
-
     // ✅ LOGOUT
     public function logout(Request $request)
     {

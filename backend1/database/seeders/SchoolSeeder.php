@@ -7,6 +7,7 @@ use App\Models\Guardian;
 use App\Models\Payment;
 use App\Models\Student;
 use App\Models\SchoolClass;
+use App\Models\SchoolClasse;
 use App\Models\User;
 use App\Models\Timetable;
 use Illuminate\Database\Seeder;
@@ -38,7 +39,7 @@ class SchoolSeeder extends Seeder
         ]);
 
         // 3. LA CLASSE
-        $class5A = SchoolClass::where('name', '5A')->first() ?? SchoolClass::create(['name' => '5A', 'level' => 'college']);
+        $class5A = SchoolClasse::where('name', '5A')->first() ?? SchoolClasse::create(['name' => '5A', 'level' => 'college']);
 
         // 4. L'ÉLÈVE (Simple profil, PAS de compte User)
         // Note : On ne crée pas de User pour Lina, seulement une entrée dans la table students.

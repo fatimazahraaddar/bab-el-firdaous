@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\SchoolClasse;
+use App\Models\SchoolClass;
 use Illuminate\Database\Seeder;
 
 class SchoolClassSeeder extends Seeder
@@ -30,7 +30,7 @@ class SchoolClassSeeder extends Seeder
         foreach ($classes as $class) {
             // updateOrCreate vérifie si le nom existe déjà.
             // Si oui, il met à jour le niveau. Si non, il crée la ligne.
-            SchoolClasse::updateOrCreate(
+            SchoolClass::updateOrCreate(
                 ['name' => $class['name']], 
                 ['level' => $class['level']]
             );

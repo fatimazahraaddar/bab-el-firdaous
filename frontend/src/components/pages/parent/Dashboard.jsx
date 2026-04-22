@@ -78,11 +78,11 @@ export default function ParentDashboard() {
             <div key={child.id} className="premium-card child-card">
 
               <div className="child-header">
-                <img
+                {/* <img
                   src={child.avatar || "https://via.placeholder.com/80"}
                   alt="child"
                   className="child-avatar"
-                />
+                /> */}
 
                 <div>
                   <h3>{child.name}</h3>

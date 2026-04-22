@@ -5,7 +5,6 @@ namespace App\Http\Controllers\API;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\SchoolClass;
-use App\Models\SchoolClasse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
 
@@ -17,7 +16,7 @@ class ClassController extends Controller
     public function index(): JsonResponse
     {
         // On utilise withCount pour savoir immédiatement combien d'élèves sont inscrits
-        $classes = SchoolClasse::withCount('students')->get();
+        $classes = SchoolClass::withCount('students')->get();
         
         return response()->json($classes);
     }
@@ -25,7 +24,7 @@ class ClassController extends Controller
     /**
      * ✅ SHOW (Utilise le Route Model Binding)
      */
-    public function show(SchoolClasse $schoolClass): JsonResponse
+    public function show(SchoolClass $schoolClass): JsonResponse
     {
         // On charge les élèves et leurs infos utilisateur pour le détail de la classe
         return response()->json(
@@ -58,7 +57,7 @@ class ClassController extends Controller
     /**
      * ✅ UPDATE (Admin Only)
      */
-    public function update(Request $request, SchoolClasse $schoolClass): JsonResponse
+    public function update(Request $request, SchoolClass $schoolClass): JsonResponse
     {
         if (Auth::user()->role !== 'admin') {
             return response()->json(['message' => 'Action non autorisée'], 403);
@@ -80,7 +79,7 @@ class ClassController extends Controller
     /**
      * ✅ DELETE (Admin Only)
      */
-    public function destroy(SchoolClasse $schoolClass): JsonResponse
+    public function destroy(SchoolClass $schoolClass): JsonResponse
     {
         if (Auth::user()->role !== 'admin') {
             return response()->json(['message' => 'Action non autorisée'], 403);

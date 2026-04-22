@@ -10,13 +10,13 @@ return new class extends Migration
     {
         Schema::create('students', function (Blueprint $table) {
             $table->id();
-            $table->string('phone')->nullable()->after('guardian_id');
+            $table->string('phone')->nullable();
+            $table->string('address')->nullable();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->string('level');
-            $table->string('first_name');
-            $table->string('last_name');
             $table->date('birth_date')->nullable();
             $table->enum('gender', ['M', 'F'])->nullable();
+            $table->enum('transport', ['pieton', 'bus'])->default('pieton'); // ✅
 
             // ⚠️ LA CORRECTION EST ICI : 
             // On remplace 'guardians' par 'parents' car c'est le nom de ta table

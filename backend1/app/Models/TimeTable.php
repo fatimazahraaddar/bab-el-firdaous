@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\SchoolClasse; // 👈 Ajouter
+use App\Models\SchoolClass; // 👈 Ajouter
 
 class TimeTable extends Model
 {
@@ -43,7 +43,7 @@ class TimeTable extends Model
 
     public function schoolClass()
     {
-        return $this->belongsTo(SchoolClasse::class, 'class_id');
+        return $this->belongsTo(SchoolClass::class, 'class_id');
     }
 
     public function subject()

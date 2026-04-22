@@ -17,8 +17,10 @@ export default function AbsenceStatistics() {
       },
     })
       .then((res) => res.json())
-      .then((data) => {
-        const rows = Array.isArray(data) ? data : [];
+      .then((result) => {
+        // 💡 Dkhel l-data.data hitach kayn paginate() f backend
+        const rows = result.data ? result.data : (Array.isArray(result) ? result : []);
+
         const total = rows.length;
         const absent = rows.filter((a) => (a.status || "absent") === "absent").length;
         const present = rows.filter((a) => (a.status || "absent") === "present").length;

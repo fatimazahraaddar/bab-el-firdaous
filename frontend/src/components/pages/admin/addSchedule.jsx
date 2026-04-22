@@ -42,6 +42,11 @@ export default function AddSchedule() {
     const token = localStorage.getItem("token");
 
     try {
+      const payload = {
+        ...form,
+        class_id: parseInt(form.class_id),
+        subject_id: parseInt(form.subject_id)
+      };
       const res = await fetch("http://localhost:8000/api/timetables", {
         method: "POST",
         headers: {
@@ -49,7 +54,7 @@ export default function AddSchedule() {
           Accept: "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify(form)
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();

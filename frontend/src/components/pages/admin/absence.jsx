@@ -20,13 +20,27 @@ export default function Absences() {
         Accept: "application/json",
       },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        // 1. T-akked beli response status 200
+        if (!res.ok) throw new Error("Erreur réseau");
+        return res.json(); // Hadhi kat-reje3 Promise
+      })
       .then((data) => {
-        setAbsences(Array.isArray(data) ? data : []);
+        // 2. Debug: Chouf d-data f console
+        console.log("Data kamla:", data);
+
+        // 3. Hitach dayr paginate(15), d-data kayna f data.data
+        if (data && data.data && Array.isArray(data.data)) {
+          setAbsences(data.data);
+        } else if (Array.isArray(data)) {
+          setAbsences(data);
+        } else {
+          setAbsences([]);
+        }
         setLoading(false);
       })
       .catch((err) => {
-        console.error(err);
+        console.error("Fetch error:", err);
         setLoading(false);
       });
   }, [API_BASE]);

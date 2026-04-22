@@ -23,8 +23,9 @@ return new class extends Migration
             // ✅ Ajout d'une relation avec le parent (celui qui doit payer)
             // Cela facilite énormément les requêtes côté "Interface Parent".
             $table->foreignId('parent_id')
-                  ->constrained('parents')
-                  ->cascadeOnDelete();
+    ->nullable()          // ✅ Ajouter
+    ->constrained('parents')
+    ->nullOnDelete();  
 
             $table->string('description'); // ex: Frais d'inscription, Cantine Mai...
             $table->decimal('amount', 10, 2);
