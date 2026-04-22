@@ -61,7 +61,7 @@ class StudentController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $this->authorize('admin-only'); // Utilisation des Policies ou Gates
+        $this->authorize('admin-only');
 
         $validated = $request->validate([
             'name'         => 'required|string|max:255',
@@ -73,32 +73,54 @@ class StudentController extends Controller
             'address'      => 'nullable|string',
             'transport'    => 'nullable|in:pieton,bus',
             'bus_id'       => 'nullable|exists:buses,id',
-            // Infos Parent
             'parent_name'  => 'required|string|max:255',
-            'parent_email' => 'required|email|unique:users,email',
+            'parent_email' => 'required|email',
             'parent_phone' => 'required|string|max:255',
         ]);
 
         try {
             $data = DB::transaction(function () use ($validated) {
-                // 1. Créer le compte Login du Parent
-                $parentPassword = Str::random(8);
-                $parentUser = User::create([
-                    'name'     => $validated['parent_name'],
-                    'email'    => $validated['parent_email'],
-                    'password' => Hash::make($parentPassword),
-                    'role'     => 'parent',
-                ]);
 
-                // 2. Créer le profil Guardian
-                $guardian = Guardian::create([
-                    'user_id' => $parentUser->id,
-                    'name'    => $validated['parent_name'],
-                    'email'   => $validated['parent_email'],
-                    'phone'   => $validated['parent_phone'],
-                ]);
+                // 1. Check if parent User already exists
+                $parentUser = User::where('email', $validated['parent_email'])->first();
+                $parentPassword = null;
+                $guardian = null;
 
-                // 3. Créer le compte Login de l'Élève
+                if (!$parentUser) {
+                    // If not exists, create User + Guardian
+                    $parentPassword = Str::random(8);
+                    $parentUser = User::create([
+                        'name'     => $validated['parent_name'],
+                        'email'    => $validated['parent_email'],
+                        'password' => Hash::make($parentPassword),
+                        'role'     => 'parent',
+                    ]);
+
+                    $guardian = Guardian::create([
+                        'user_id' => $parentUser->id,
+                        'name'    => $validated['parent_name'],
+                        'email'   => $validated['parent_email'],
+                        'phone'   => $validated['parent_phone'],
+                    ]);
+                } else {
+                    // If exists, verify role
+                    if ($parentUser->role !== 'parent') {
+                        throw new \Exception("Cet email appartient à un utilisateur qui n'est pas un parent.");
+                    }
+
+                    // IMPORTANT: Fetch existing Guardian profile
+                    // Make sure your User model has 'guardian' or 'guardianProfile' relation
+                    $guardian = Guardian::where('user_id', $parentUser->id)->first();
+
+                    if (!$guardian) {
+                        throw new \Exception("Utilisateur trouvé mais profil Parent (Guardian) manquant.");
+                    }
+
+                    // Optional: Update phone if changed
+                    // $guardian->update(['phone' => $validated['parent_phone']]);
+                }
+
+                // 2. Create Student User
                 $studentUser = User::create([
                     'name'     => $validated['name'],
                     'email'    => $validated['email'],
@@ -106,7 +128,7 @@ class StudentController extends Controller
                     'role'     => 'student',
                 ]);
 
-                // 4. Créer le profil Élève
+                // 3. Link Student to the Guardian
                 $student = Student::create([
                     'user_id'     => $studentUser->id,
                     'level'       => $validated['level'],
@@ -120,20 +142,21 @@ class StudentController extends Controller
 
                 return [
                     'student' => $student,
-                    'parent_password' => $parentPassword
+                    'parent_password' => $parentPassword,
+                    'is_new_parent' => !is_null($parentPassword)
                 ];
             });
 
             return response()->json([
-                'message'      => 'Élève et parent créés avec succès',
-                'parent_creds' => [
+                'message'      => $data['is_new_parent'] ? 'Élève et parent créés' : 'Élève ajouté au parent existant',
+                'parent_creds' => $data['is_new_parent'] ? [
                     'email'    => $validated['parent_email'],
                     'password' => $data['parent_password'],
-                ],
-                'student'      => $data['student']->load(['user', 'guardian', 'schoolClass', 'bus']),
+                ] : null,
+                'student'      => $data['student']->load(['user', 'guardian']),
             ], 201);
         } catch (\Exception $e) {
-            return response()->json(['message' => 'Erreur lors de la création : ' . $e->getMessage()], 500);
+            return response()->json(['message' => 'Erreur : ' . $e->getMessage()], 500);
         }
     }
 

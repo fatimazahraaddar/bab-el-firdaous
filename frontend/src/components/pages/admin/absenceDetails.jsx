@@ -12,19 +12,30 @@ export default function AbsenceDetail() {
   useEffect(() => {
     const token = localStorage.getItem("token");
 
+    // Reset loading mni kaye-tbeddel l-ID
+    setLoading(true);
+
     fetch(`http://localhost:8000/api/absences/${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
         Accept: "application/json",
       },
     })
-      .then((res) => res.json())
+      .then((res) => {
+        // 1. Ila l-id makayench (404) aw l-user ma3ndouch l-haq (403)
+        if (!res.ok) {
+          throw new Error(`Erreur: ${res.status}`);
+        }
+        return res.json();
+      })
       .then((data) => {
+        // 2. Laravel kaye-reje3 l-absence nichan (machi data.data)
         setAbsence(data);
         setLoading(false);
       })
       .catch((err) => {
-        console.error(err);
+        console.error("Erreur AbsenceDetail:", err);
+        setAbsence(null); // Bach n-affichiw "introuvable"
         setLoading(false);
       });
   }, [id]);
