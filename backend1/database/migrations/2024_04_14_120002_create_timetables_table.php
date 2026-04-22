@@ -13,7 +13,7 @@ return new class extends Migration
 
             // ✅ Utiliser un ENUM pour les jours évite les erreurs de frappe (ex: "Lundi" vs "monday")
             // C'est beaucoup plus facile à gérer côté Frontend pour le filtrage.
-            $table->enum('day', ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']);
+            $table->enum('day', ['lundi','mardi','mercredi','jeudi','vendredi','samedi','dimanche']);
 
             $table->time('start_time');
             $table->time('end_time');

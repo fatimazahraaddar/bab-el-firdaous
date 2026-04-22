@@ -64,7 +64,7 @@ class StudentController extends Controller
         $this->authorize('admin-only'); // Utilisation des Policies ou Gates
 
         $validated = $request->validate([
-            'name'         => 'required|string|max:255',
+            'name'      => 'required|string|max:255', // 👈 garder 'name'
             'email'        => 'required|email|unique:users,email',
             'password'     => 'required|string|min:6',
             'level'        => 'required|string|max:255',
@@ -106,9 +106,16 @@ class StudentController extends Controller
                     'role'     => 'student',
                 ]);
 
+                // 👇 Ajouter ces 3 lignes ici
+                $nameParts = explode(' ', $validated['name'], 2);
+                $firstName = $nameParts[0];
+                $lastName  = $nameParts[1] ?? $nameParts[0];
+
                 // 4. Créer le profil Élève
                 $student = Student::create([
                     'user_id'     => $studentUser->id,
+                    'first_name'  => $firstName,  // 👈
+                    'last_name'   => $lastName,   // 👈
                     'level'       => $validated['level'],
                     'class_id'    => $validated['class_id'],
                     'guardian_id' => $guardian->id,

@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
 
-class TimetableController extends Controller
+class TimeTableController extends Controller
 {
     /**
      * ✅ LISTE (Filtrée par classe)
@@ -64,7 +64,7 @@ class TimetableController extends Controller
         $validated = $request->validate([
             'class_id'   => 'required|exists:school_classes,id',
             'subject_id' => 'required|exists:subjects,id',
-            'day'        => 'required|string|in:Lundi,Mardi,Mercredi,Jeudi,Vendredi,Samedi,Dimanche',
+            'day'        => 'required|string|in:lundi,mardi,mercredi,jeudi,vendredi,samedi,dimanche',
             'start_time' => 'required|date_format:H:i',
             'end_time'   => 'required|date_format:H:i|after:start_time',
             'room'       => 'nullable|string|max:50'
@@ -89,7 +89,7 @@ class TimetableController extends Controller
 
         $timetable = Timetable::create($validated);
 
-        return response()->json($timetable->load(['class', 'subject']), 201);
+        return response()->json($timetable->load(['schoolClass', 'subject']), 201);
     }
 
     /**
@@ -97,10 +97,13 @@ class TimetableController extends Controller
      */
     public function update(Request $request, Timetable $timetable): JsonResponse
     {
-        $this->authorize('admin-only');
+        if (Auth::user()->role !== 'admin') {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
 
         $validated = $request->validate([
             'class_id'   => 'sometimes|exists:school_classes,id',
+           'day' => 'required|string|in:lundi,mardi,mercredi,jeudi,vendredi,samedi,dimanche',
             'subject_id' => 'sometimes|exists:subjects,id',
             'day'        => 'sometimes|string',
             'start_time' => 'sometimes|date_format:H:i',
@@ -110,7 +113,7 @@ class TimetableController extends Controller
 
         $timetable->update($validated);
 
-        return response()->json($timetable->load(['class', 'subject']));
+        return response()->json($timetable->load(['schoolClass', 'subject']));
     }
 
     /**

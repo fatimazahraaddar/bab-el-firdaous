@@ -17,6 +17,7 @@ use App\Http\Controllers\API\SettingsController;
 use App\Http\Controllers\API\StatisticsController;
 use App\Http\Controllers\API\AbsenceController;
 use App\Http\Controllers\API\AssignmentController;
+use App\Http\Controllers\API\SubjectController;
 use App\Http\Middleware\ManualAuth;
 
 /*
@@ -29,7 +30,8 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
 
 // ✅ Consultation des classes (utile pour l'inscription par exemple)
-Route::get('/classes', [ClassController::class, 'index']);
+    Route::get('/classes', [ClassController::class, 'index']);
+    Route::get('/subjects', [SubjectController::class, 'index']);
 
 
 /*
@@ -78,4 +80,6 @@ Route::middleware(ManualAuth::class)->group(function () {
 
     // 📊 Statistiques avancées
     Route::get('/statistics', [StatisticsController::class, 'index']);
+    //Subjects
+
 });

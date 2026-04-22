@@ -14,8 +14,9 @@ public function up(): void
     Schema::create('parents', function (Blueprint $table) {
         $table->id(); // ✅ Ceci crée un Unsigned Big Integer
         $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+        $table->string('name');
+        $table->string('email')->unique();
         $table->string('phone');
-        $table->string('job')->nullable();
         $table->string('address')->nullable();
         $table->timestamps();
     });

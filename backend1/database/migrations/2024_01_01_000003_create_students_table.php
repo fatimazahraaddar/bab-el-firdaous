@@ -10,6 +10,9 @@ return new class extends Migration
     {
         Schema::create('students', function (Blueprint $table) {
             $table->id();
+            $table->string('phone')->nullable()->after('guardian_id');
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->string('level');
             $table->string('first_name');
             $table->string('last_name');
             $table->date('birth_date')->nullable();
@@ -33,6 +36,9 @@ return new class extends Migration
 
     public function down(): void
     {
+      Schema::table('students', function (Blueprint $table) {
+        $table->dropColumn('phone');
+    });
         Schema::dropIfExists('students');
     }
 };

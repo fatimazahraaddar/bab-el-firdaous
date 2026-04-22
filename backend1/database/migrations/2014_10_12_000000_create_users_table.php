@@ -18,7 +18,7 @@ return new class extends Migration
             
             // ✅ Correction : Seuls 'admin' et 'parent' sont autorisés.
             // Le rôle par défaut reste 'parent'.
-            $table->enum('role', ['admin', 'parent'])->default('parent');
+            $table->enum('role', ['admin', 'parent','student'])->default('parent');
             
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');

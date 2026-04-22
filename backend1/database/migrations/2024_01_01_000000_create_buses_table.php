@@ -23,7 +23,7 @@ return new class extends Migration
 
             // ✅ Capacité et zone
             $table->integer('capacity'); // Nombre de sièges
-            $table->string('route_name')->nullable(); // ex: "Quartier Maârif", "Zone Nord"
+            $table->string('zone')->nullable(); // ex: "Quartier Maârif", "Zone Nord"
 
             // ✅ Statut du bus
             $table->enum('status', ['active', 'maintenance', 'inactive'])->default('active');

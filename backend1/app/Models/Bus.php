@@ -10,7 +10,7 @@ class Bus extends Model
     use HasFactory;
 
     protected $fillable = [
-        'number',
+        'bus_number',
         'driver_name',
         'driver_phone', // 🔥 AJOUT : Pour que les parents/admin puissent appeler
         'capacity',

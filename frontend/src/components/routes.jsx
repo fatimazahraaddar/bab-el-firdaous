@@ -24,11 +24,12 @@ import AdminPayments from "./pages/admin/Payment";
 import AdminTransport from "./pages/admin/Transport";
 import BusDetails from "./pages/admin/BusDetails";
 import EditTransport from "./pages/admin/EditTransport";
+import AddTransport from "./pages/admin/AddTransport";
 import AdminAbsences from "./pages/admin/absence";
 import AdminAbsenceDetails from "./pages/admin/absenceDetails";
 import AdminAbsenceStats from "./pages/admin/absenceStatique";
 import AdminSettings from "./pages/admin/Settings";
-import AddStudent from './pages/admin/AddStudent';
+import AddStudent from "./pages/admin/AddStudent";
 import StudentDetails from "./pages/admin/StudentDetails";
 import EditStudent from "./pages/admin/EditStudent";
 
@@ -186,19 +187,30 @@ export default function App() {
             </ProtectedRoute>
           }
         />
+
         <Route
-          path="/admin/transport/:id"
+          path="/admin/transport/create"
           element={
             <ProtectedRoute role="admin">
-              <BusDetails />
+              <AddTransport />
             </ProtectedRoute>
           }
         />
+
         <Route
           path="/admin/transport/edit/:id"
           element={
             <ProtectedRoute role="admin">
               <EditTransport />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/admin/transport/:id"
+          element={
+            <ProtectedRoute role="admin">
+              <BusDetails />
             </ProtectedRoute>
           }
         />

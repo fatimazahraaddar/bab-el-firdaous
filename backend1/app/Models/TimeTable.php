@@ -4,10 +4,13 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\SchoolClasse; // 👈 Ajouter
 
-class Timetable extends Model
+class TimeTable extends Model
 {
     use HasFactory;
+
+    protected $table = 'timetables';
 
     protected $fillable = [
         'day',         // ex: 'Monday', 'Tuesday'
@@ -22,8 +25,8 @@ class Timetable extends Model
      * Casts pour faciliter la manipulation des heures
      */
     protected $casts = [
-        'start_time' => 'datetime:H:i',
-        'end_time'   => 'datetime:H:i',
+        'start_time' => 'string', // On garde en string pour le format H:i
+        'end_time'   => 'string', // On garde en string pour le format H:i
     ];
 
     // --- SCOPES ---
@@ -40,7 +43,7 @@ class Timetable extends Model
 
     public function schoolClass()
     {
-        return $this->belongsTo(SchoolClass::class, 'class_id');
+        return $this->belongsTo(SchoolClasse::class, 'class_id');
     }
 
     public function subject()

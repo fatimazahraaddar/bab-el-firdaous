@@ -15,7 +15,6 @@ class Guardian extends Model
         'name',
         'phone',
         'email',
-        'job',
         'address', // 🔥 AJOUT : Souvent nécessaire pour les urgences/bus
         'user_id' 
     ];

@@ -43,16 +43,24 @@ class BusController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $this->authorize('admin-only'); // Idéalement via une Gate
+        if (!Auth::check() || Auth::user()->role !== 'admin') {
+           return response()->json(['message' => 'Action non autorisée'], 403);
+} // Idéalement via une Gate
 
         $validated = $request->validate([
-            'number'      => 'required|string|max:50|unique:buses,number',
-            'driver_name' => 'required|string|max:255',
-            'capacity'    => 'required|integer|min:1',
-            'zone'        => 'nullable|string|max:255',
-        ]);
+        'number'      => 'required|string|max:50|unique:buses,bus_number', // ✅ 'bus_number' sans le D
+        'driver_name' => 'required|string|max:255',
+        'capacity'    => 'required|integer|min:1',
+        'zone'        => 'nullable|string|max:255',
+    ]);
 
-        $bus = Bus::create($validated);
+    // ✅ On associe manuellement 'number' du formulaire à 'bus_number' en BDD
+    $bus = Bus::create([
+        'bus_number'  => $validated['number'], 
+        'driver_name' => $validated['driver_name'],
+        'capacity'    => $validated['capacity'],
+        'zone'        => $validated['zone'],
+    ]);
 
         return response()->json($bus, 201);
     }

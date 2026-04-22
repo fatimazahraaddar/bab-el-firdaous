@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\SchoolClasse;
 
 class Student extends Model
 {
@@ -14,7 +15,9 @@ class Student extends Model
         'guardian_id',
         'class_id',    // ✅ Changé pour correspondre à la relation BelongsTo
         'bus_id',
-        'level',       // ex: Primaire, Collège
+        'level',   
+        'first_name',  // 👈
+        'last_name',   // 👈    // ex: Primaire, Collège
         'phone',
         'address',
         'transport',   // boolean ou string (ex: 'bus', 'private')
@@ -33,7 +36,7 @@ class Student extends Model
     /**
      * La classe actuelle (SchoolClass)
      */
-    public function school_classes()
+    public function schoolClass()
     {
         return $this->belongsTo(SchoolClasse::class, 'class_id');
     }

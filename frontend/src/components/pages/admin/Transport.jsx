@@ -18,7 +18,13 @@ export default function Transport() {
     })
       .then((res) => res.json())
       .then((data) => {
-        setBuses(Array.isArray(data) ? data : []);
+        setBuses(
+          Array.isArray(data)
+            ? data
+            : Array.isArray(data.data)
+              ? data.data
+              : [],
+        );
         setLoading(false);
       })
       .catch((err) => {
@@ -53,7 +59,16 @@ export default function Transport() {
   return (
     <DashboardLayout>
       <div className="container-fluid">
-        <h2 className="mb-4">Transport scolaire</h2>
+        <div className="d-flex justify-content-between align-items-center mb-4">
+          <h2 className="mb-4">Transport scolaire</h2>
+
+          <button
+            onClick={() => navigate("/admin/transport/create")}
+            className="btn btn-primary"
+          >
+            + Ajouter bus
+          </button>
+        </div>
 
         <div className="card shadow p-3">
           <table className="table table-hover align-middle">
@@ -79,7 +94,9 @@ export default function Transport() {
                     <td>{bus.zone || "—"}</td>
                     <td>{bus.capacity}</td>
                     <td>
-                      <span className="badge bg-success">{bus.students_count || 0} élèves</span>
+                      <span className="badge bg-success">
+                        {bus.students_count || 0} élèves
+                      </span>
                     </td>
                     <td>
                       <button
@@ -90,11 +107,16 @@ export default function Transport() {
                       </button>
                       <button
                         className="btn btn-sm btn-outline-warning me-2"
-                        onClick={() => navigate(`/admin/transport/edit/${bus.id}`)}
+                        onClick={() =>
+                          navigate(`/admin/transport/edit/${bus.id}`)
+                        }
                       >
                         ✏️
                       </button>
-                      <button className="btn btn-sm btn-outline-danger" onClick={() => handleDelete(bus.id)}>
+                      <button
+                        className="btn btn-sm btn-outline-danger"
+                        onClick={() => handleDelete(bus.id)}
+                      >
                         🗑
                       </button>
                     </td>
@@ -114,4 +136,3 @@ export default function Transport() {
     </DashboardLayout>
   );
 }
-
